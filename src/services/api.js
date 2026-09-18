@@ -2,20 +2,22 @@
  * API client for Computer Quest backend.
  * Token stored in sessionStorage (not localStorage progress keys).
  *
- * API base URL resolution:
- * - VITE_API_URL set → use it (e.g. external Railway/Render URL)
- * - Dev (vite) → http://127.0.0.1:3001
- * - Production build without VITE_API_URL → same origin (Vercel /api)
+ * Production API (live): https://computer-quest.vercel.app
+ * Paths are always /api/...
  */
+
+/** Live production API origin — real public HTTPS, not a placeholder */
+export const PRODUCTION_API_ORIGIN = 'https://computer-quest.vercel.app'
 
 function resolveApiBase() {
   const env = import.meta.env.VITE_API_URL
-  if (env !== undefined && env !== null && String(env).length > 0) {
-    return String(env).replace(/\/$/, '')
+  if (env !== undefined && env !== null && String(env).trim().length > 0) {
+    return String(env).trim().replace(/\/$/, '')
   }
-  if (env === '') return ''
+  // Local Vite dev → local Express
   if (import.meta.env.DEV) return 'http://127.0.0.1:3001'
-  return ''
+  // Production build: use live Vercel API (same deployment)
+  return PRODUCTION_API_ORIGIN
 }
 
 const API_BASE = resolveApiBase()
@@ -91,7 +93,6 @@ export const api = {
     request('/api/admin/course', { method: 'PATCH', body: JSON.stringify(body) }),
 }
 
-/** Always true — same-origin production or configured base. */
 export function isApiConfigured() {
   return true
 }
