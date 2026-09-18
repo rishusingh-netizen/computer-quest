@@ -1,6 +1,7 @@
 /**
- * Central course & pricing configuration.
- * Change price/currency/duration here only — UI reads from this module.
+ * Course metadata defaults (name, modules, includes).
+ * Active price is owned by the server (course_config) and edited in Admin → Courses.
+ * Do not treat COURSE.price as the live price — use getCourseConfig() / api.course().
  */
 
 export const COURSE = {
@@ -12,9 +13,9 @@ export const COURSE = {
     'A complete interactive course for school, college and beginner students: lessons, practice labs, skill games, tests, smart revision and Quest Helper.',
   durationYears: 2,
   currency: 'INR',
-  /** Price in smallest currency unit display value (rupees) */
-  price: 2999,
-  priceLabel: '₹2,999',
+  /** Fallback only when API is unreachable — not the admin source of truth */
+  price: null,
+  priceLabel: null,
   includes: [
     'Levels 1–9 full interactive lessons',
     'Practice Lab simulations (including Word, Excel, PowerPoint)',
@@ -36,17 +37,19 @@ export const COURSE = {
   ],
 }
 
-/** Payment mode: 'mock' until real provider credentials are configured server-side */
+/** Payment mode: mock until real provider credentials are configured server-side */
 export const PAYMENT_CONFIG = {
-  mode: 'mock', // 'mock' | 'live' (live requires backend)
+  mode: 'mock',
   provider: 'mock-gateway',
-  currency: COURSE.currency,
-  amount: COURSE.price,
+  currency: 'INR',
   note:
-    'Development uses MOCK payment only. Real Razorpay/Stripe keys must stay on a server — never in this frontend.',
+    'MOCK payment for development. Amount is always taken from the server course_config price so a real gateway can use the same value later.',
 }
 
-export function formatPrice(amount = COURSE.price, currency = COURSE.currency) {
+export function formatPrice(amount, currency = 'INR') {
+  if (amount === null || amount === undefined || amount === '' || Number.isNaN(Number(amount))) {
+    return '—'
+  }
   if (currency === 'INR') return `₹${Number(amount).toLocaleString('en-IN')}`
   return `${currency} ${amount}`
 }
