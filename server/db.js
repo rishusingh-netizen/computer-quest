@@ -259,9 +259,12 @@ function runRun(sql, params) {
 export function initDb() {
   const data = readAll()
   if (!data.course_config) {
+    // Placeholder only when durable courseConfigStore has never been written.
+    // Live price is owned by server/data/course-config.json (GitHub-backed).
+    // Do NOT hardcode a product price here — admin sets it via PATCH /api/admin/course.
     data.course_config = {
       id: 1,
-      price_paise: 299900,
+      price_paise: 0,
       duration_days: 730,
       title: 'Computer Quest',
       completion_json: JSON.stringify({
