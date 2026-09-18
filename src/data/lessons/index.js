@@ -33,6 +33,12 @@ export function getLessonById(id) {
   return null
 }
 
+export function getLessonsForLevel(levelId) {
+  const idx = Math.max(0, Math.min(8, (Number(levelId) || 1) - 1))
+  const lessonsObj = LEVEL_MAP[idx]?.[0] || {}
+  return Object.values(lessonsObj)
+}
+
 export function hasFullLesson(id) {
   return Boolean(getLessonById(id))
 }
