@@ -3,9 +3,22 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const dataDir = path.join(__dirname, 'data')
+
+/** On Vercel/serverless the project filesystem is read-only; persist under /tmp. */
+function resolveDataDir() {
+  if (process.env.CQ_DB_PATH) {
+    return path.dirname(path.resolve(process.env.CQ_DB_PATH))
+  }
+  if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
+    return path.join('/tmp', 'computer-quest-data')
+  }
+  return path.join(__dirname, 'data')
+}
+
+const dataDir = resolveDataDir()
 if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true })
-const dbPath = process.env.CQ_DB_PATH || path.join(dataDir, 'computer-quest.json')
+const dbPath =
+  process.env.CQ_DB_PATH || path.join(dataDir, 'computer-quest.json')
 
 const defaultData = () => ({
   users: [],
