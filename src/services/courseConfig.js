@@ -16,9 +16,11 @@ function fromServerCourse(course) {
       ? Number(course.priceInr)
       : course.pricePaise != null
         ? Math.round(Number(course.pricePaise) / 100)
-        : course.price != null
-          ? Number(course.price)
-          : null
+        : course.price_paise != null
+          ? Math.round(Number(course.price_paise) / 100)
+          : course.price != null
+            ? Number(course.price)
+            : null
   const durationDays = course.durationDays ?? course.duration_days
   const durationYears =
     course.durationYears != null
@@ -33,7 +35,14 @@ function fromServerCourse(course) {
     priceLabel: priceInr != null ? `₹${Number(priceInr).toLocaleString('en-IN')}` : null,
     durationYears,
     durationDays: durationDays != null ? Number(durationDays) : durationYears * 365,
-    pricePaise: course.pricePaise != null ? Number(course.pricePaise) : priceInr != null ? Math.round(priceInr * 100) : null,
+    pricePaise:
+      course.pricePaise != null
+        ? Number(course.pricePaise)
+        : course.price_paise != null
+          ? Number(course.price_paise)
+          : priceInr != null
+            ? Math.round(priceInr * 100)
+            : null,
     updatedAt: course.updated_at || course.updatedAt || null,
   }
 }
@@ -84,11 +93,15 @@ export async function saveCourseConfig(_user, patch) {
   const durationYears = patch.durationYears != null ? Number(patch.durationYears) : undefined
   const body = {}
   if (priceInr !== undefined) {
+    const paise = Math.round(priceInr * 100)
     body.priceInr = priceInr
-    body.pricePaise = Math.round(priceInr * 100)
+    body.pricePaise = paise
+    body.price_paise = paise
   }
   if (durationYears !== undefined && Number.isFinite(durationYears) && durationYears > 0) {
-    body.durationDays = Math.round(durationYears * 365)
+    const days = Math.round(durationYears * 365)
+    body.durationDays = days
+    body.duration_days = days
   }
   if (patch.name) body.title = String(patch.name).trim()
 
