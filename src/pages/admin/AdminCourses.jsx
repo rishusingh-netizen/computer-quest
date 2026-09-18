@@ -57,15 +57,25 @@ export default function AdminCourses() {
     }
     setCfg(res.config)
     setPriceInput(res.config.price != null ? String(res.config.price) : String(price))
-    setMsg(`Saved. Active price is now ${formatPrice(res.config.price)}. Public course page and checkout will use this amount.`)
+    let persistNote = ' Saved on this server instance.'
+    if (res.persistedToGitHub || res.durable) {
+      persistNote =
+        ' Saved permanently to the production durable store (survives deploys and cold starts).'
+    } else if (res.warning) {
+      persistNote = ` Saved on this instance only. ${res.warning}`
+    }
+    setMsg(
+      `Active price is now ${formatPrice(res.config.price)}.${persistNote} Public course page and checkout use this amount.`
+    )
   }
 
   return (
     <div>
       <h2 className="card-title mb-3">Course settings</h2>
       <p className="text-sm text-muted mb-3">
-        Set the membership price in INR. It is stored on the server and used by the public course page
-        and enrollment (mock payment). Change it anytime — students see the latest saved price.
+        Set the membership price in INR. It is stored server-side in the durable course config
+        (not browser localStorage) and is used by the public course page and enrollment (mock payment).
+        Change it anytime — students always see the latest saved price after save.
       </p>
 
       <div className="card mb-4" style={{ maxWidth: 560 }}>

@@ -1,7 +1,6 @@
 /**
  * Course config — price and title come from the API (server course_config).
  * localStorage only caches the last successful fetch for offline display.
- * The real source of truth is the server durable store (not localStorage).
  */
 
 import { COURSE as DEFAULT_COURSE } from '../config/course'
@@ -36,14 +35,7 @@ function fromServerCourse(course) {
     priceLabel: priceInr != null ? `₹${Number(priceInr).toLocaleString('en-IN')}` : null,
     durationYears,
     durationDays: durationDays != null ? Number(durationDays) : durationYears * 365,
-    pricePaise:
-      course.pricePaise != null
-        ? Number(course.pricePaise)
-        : course.price_paise != null
-          ? Number(course.price_paise)
-          : priceInr != null
-            ? Math.round(priceInr * 100)
-            : null,
+    pricePaise: course.pricePaise != null ? Number(course.pricePaise) : priceInr != null ? Math.round(priceInr * 100) : null,
     updatedAt: course.updated_at || course.updatedAt || null,
   }
 }
@@ -71,7 +63,7 @@ function cacheConfig(cfg) {
   return cfg
 }
 
-/** Load latest price/title from server; cache locally for display only. */
+/** Load latest price/title from server; cache locally. */
 export async function fetchCourseConfig() {
   const res = await api.course()
   if (res.offline || !res.ok) {
@@ -79,11 +71,17 @@ export async function fetchCourseConfig() {
   }
   const config = fromServerCourse(res.course)
   cacheConfig(config)
-  return { ok: true, config }
+  return {
+    ok: true,
+    config,
+    persistedToGitHub: !!res.persistedToGitHub,
+    durable: !!res.durable,
+    warning: res.warning,
+  }
 }
 
 /**
- * Admin: persist price/title/duration on the server durable store.
+ * Admin: persist price/title/duration on the server.
  * @param {{ price?: number, name?: string, durationYears?: number }} patch price in INR
  */
 export async function saveCourseConfig(_user, patch) {
@@ -97,7 +95,7 @@ export async function saveCourseConfig(_user, patch) {
     const paise = Math.round(priceInr * 100)
     body.priceInr = priceInr
     body.pricePaise = paise
-    body.price_paise = paise
+    body.price_paise = paise // compat with older server field names
   }
   if (durationYears !== undefined && Number.isFinite(durationYears) && durationYears > 0) {
     const days = Math.round(durationYears * 365)
@@ -122,6 +120,7 @@ export async function saveCourseConfig(_user, patch) {
     ok: true,
     config,
     persistedToGitHub: !!res.persistedToGitHub,
+    durable: !!res.durable,
     warning: res.warning,
   }
 }
