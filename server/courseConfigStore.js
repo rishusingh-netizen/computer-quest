@@ -1,17 +1,28 @@
 /**
- * Durable course configuration store.
+ * Production-ready durable course configuration store.
  *
- * Source of truth priority on READ:
- *  1. Local/server file (server/data/course-config.json or /tmp copy)
- *  2. Public GitHub raw file (survives Vercel cold starts)
- *  3. null → caller applies bootstrap default once
+ * Source of truth for the live course PRICE is the committed file
+ *   server/data/course-config.json
+ * in the GitHub repo (public raw URL for reads; Contents API for writes).
  *
- * On WRITE (admin save):
- *  1. Always write local/tmp file
- *  2. If CQ_GITHUB_TOKEN (or GITHUB_TOKEN) is set, commit to the repo
- *     so the next cold start still sees the price
+ * Why not only the JSON DB under /tmp?
+ *   Vercel serverless instances are ephemeral. /tmp does not survive
+ *   cold starts or scale-out. localStorage is browser-only and must never
+ *   be the admin source of truth.
  *
- * This is independent of localStorage and of the ephemeral users DB in /tmp.
+ * READ priority:
+ *  1. On Vercel / Lambda: GitHub raw first (cross-instance source of truth)
+ *  2. Local or /tmp file (fast path / write-through cache)
+ *  3. Packaged file shipped with the deployment
+ *  4. null → caller may apply a one-time bootstrap (never a hard-coded live price)
+ *
+ * WRITE (admin save):
+ *  1. Always write local/tmp (and packaged path when writable)
+ *  2. If CQ_GITHUB_TOKEN (or GITHUB_TOKEN) is set, commit to the repo so
+ *     every future cold start and every instance sees the new price
+ *  3. Return persistedToGitHub so the admin UI can confirm permanence
+ *
+ * This module is independent of browser localStorage and of the users DB.
  */
 
 import fs from 'fs'
@@ -26,15 +37,24 @@ const BRANCH = process.env.CQ_GITHUB_BRANCH || 'main'
 const CONFIG_PATH_IN_REPO = 'server/data/course-config.json'
 const RAW_URL = `https://raw.githubusercontent.com/${OWNER}/${REPO}/${BRANCH}/${CONFIG_PATH_IN_REPO}`
 
+function isServerless() {
+  return !!(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME)
+}
+
 function resolveLocalPath() {
   if (process.env.CQ_COURSE_CONFIG_PATH) {
     return path.resolve(process.env.CQ_COURSE_CONFIG_PATH)
   }
+  // Prefer package data dir locally; on Vercel keep a /tmp mirror for fast writes
   const packaged = path.join(__dirname, 'data', 'course-config.json')
-  if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
+  if (isServerless()) {
     return path.join('/tmp', 'computer-quest-data', 'course-config.json')
   }
   return packaged
+}
+
+function packagedPath() {
+  return path.join(__dirname, 'data', 'course-config.json')
 }
 
 function githubToken() {
@@ -68,18 +88,31 @@ function normalize(cfg) {
   }
 }
 
+function ts(cfg) {
+  if (!cfg?.updated_at) return 0
+  const t = Date.parse(cfg.updated_at)
+  return Number.isFinite(t) ? t : 0
+}
+
+/** Pick the config with the newest updated_at (prefer non-null). */
+function newest(a, b) {
+  if (!a) return b
+  if (!b) return a
+  return ts(a) >= ts(b) ? a : b
+}
+
 function readLocalFile() {
   try {
     const p = resolveLocalPath()
-    if (!fs.existsSync(p)) {
-      const packaged = path.join(__dirname, 'data', 'course-config.json')
-      if (packaged !== p && fs.existsSync(packaged)) {
-        const raw = fs.readFileSync(packaged, 'utf8')
-        return normalize(JSON.parse(raw))
-      }
-      return null
+    if (fs.existsSync(p)) {
+      return normalize(JSON.parse(fs.readFileSync(p, 'utf8')))
     }
-    return normalize(JSON.parse(fs.readFileSync(p, 'utf8')))
+    // Packaged path when running on Vercel (read-only copy from deploy)
+    const packaged = packagedPath()
+    if (packaged !== p && fs.existsSync(packaged)) {
+      return normalize(JSON.parse(fs.readFileSync(packaged, 'utf8')))
+    }
+    return null
   } catch {
     return null
   }
@@ -90,8 +123,9 @@ function writeLocalFile(cfg) {
   const dir = path.dirname(p)
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
   fs.writeFileSync(p, JSON.stringify(cfg, null, 2))
+  // Best-effort: also update packaged path when writable (local dev)
   try {
-    const packaged = path.join(__dirname, 'data', 'course-config.json')
+    const packaged = packagedPath()
     if (packaged !== p) {
       const pkgDir = path.dirname(packaged)
       if (!fs.existsSync(pkgDir)) fs.mkdirSync(pkgDir, { recursive: true })
@@ -156,19 +190,41 @@ async function writeToGitHub(cfg, token) {
   return true
 }
 
+/** In-process cache to avoid hitting GitHub on every request */
 let cache = { cfg: null, loadedAt: 0 }
-const CACHE_MS = 15_000
+const CACHE_MS = 10_000
 
+/**
+ * Load durable course config (never from localStorage / browser).
+ * On serverless, GitHub raw is preferred so every instance agrees.
+ */
 export async function loadCourseConfig() {
   const now = Date.now()
   if (cache.cfg && now - cache.loadedAt < CACHE_MS) return cache.cfg
 
-  let cfg = readLocalFile()
-  if (!cfg) {
-    cfg = await readFromGitHubRaw()
+  let local = readLocalFile()
+  let remote = null
+
+  // On Vercel always consult GitHub first so cold starts and scale-out
+  // share one permanent price. Locally, GitHub is still consulted and
+  // we keep the newest by updated_at.
+  remote = await readFromGitHubRaw()
+
+  let cfg
+  if (isServerless()) {
+    // Production: GitHub is the permanent cross-instance source of truth.
+    // Prefer the newest updated_at so a just-committed price wins over a
+    // stale /tmp cache, and a warmer /tmp still loses to a newer commit.
+    cfg = newest(remote, local) || remote || local
+  } else {
+    // Local development: disk file is the working store (no token required).
+    // GitHub is only a fallback when the local file is missing.
+    cfg = local || remote
   }
+
   if (cfg) {
     cache = { cfg, loadedAt: now }
+    // Warm local/tmp for subsequent reads in this instance
     try {
       writeLocalFile(cfg)
     } catch {
@@ -178,6 +234,10 @@ export async function loadCourseConfig() {
   return cfg
 }
 
+/**
+ * Persist course config durably.
+ * @returns {{ ok: boolean, config?: object, persistedToGitHub?: boolean, durable?: boolean, warning?: string, error?: string }}
+ */
 export async function saveCourseConfig(partial) {
   const current = (await loadCourseConfig()) || {
     id: 1,
@@ -216,22 +276,28 @@ export async function saveCourseConfig(partial) {
   cache = { cfg: next, loadedAt: Date.now() }
 
   let persistedToGitHub = false
+  let warning
   const token = githubToken()
   if (token) {
     try {
       await writeToGitHub(next, token)
       persistedToGitHub = true
     } catch (e) {
-      return {
-        ok: true,
-        config: next,
-        persistedToGitHub: false,
-        warning: e.message,
-      }
+      // Local write succeeded; GitHub is required for cross-instance durability
+      warning = e.message
     }
+  } else if (isServerless()) {
+    warning =
+      'CQ_GITHUB_TOKEN is not set. Price was saved on this instance only and may reset after a cold start. Add a fine-scoped GitHub token (Contents: Read & Write) in Vercel env for permanent production pricing.'
   }
 
-  return { ok: true, config: next, persistedToGitHub }
+  return {
+    ok: true,
+    config: next,
+    persistedToGitHub,
+    durable: persistedToGitHub || !isServerless(),
+    warning,
+  }
 }
 
 export function clearCourseConfigCache() {
