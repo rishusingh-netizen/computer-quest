@@ -150,19 +150,22 @@ app.get('/api/auth/me', authMiddleware, (req, res) => {
 
 app.get('/api/course', (_req, res) => {
   const cfg = getConfig()
+  let completion = {}
+  try {
+    completion = JSON.parse(cfg?.completion_json || '{}')
+  } catch {}
+  const pricePaise = Number(cfg?.price_paise) || 0
   res.json({
     ok: true,
     course: {
       title: cfg?.title || 'Computer Quest',
-      price_paise: cfg?.price_paise ?? 299900,
-      duration_days: cfg?.duration_days ?? 730,
-      completion: (() => {
-        try {
-          return JSON.parse(cfg?.completion_json || '{}')
-        } catch {
-          return {}
-        }
-      })(),
+      name: cfg?.title || 'Computer Quest',
+      pricePaise,
+      priceInr: Math.round(pricePaise / 100),
+      durationDays: cfg?.duration_days ?? 730,
+      durationYears: Math.max(1, Math.round((cfg?.duration_days || 730) / 365)),
+      completion,
+      updatedAt: cfg?.updated_at || null,
     },
   })
 })
@@ -196,12 +199,22 @@ app.post('/api/payments/create-order', authMiddleware, (req, res) => {
   const cfg = getConfig()
   const id = uid('ord')
   const now = new Date().toISOString()
-  const amount = cfg?.price_paise ?? 299900
+  const amountPaise = Number(cfg?.price_paise) || 0
   db.prepare(
     `INSERT INTO orders (id, user_id, amount_paise, currency, status, provider, provider_ref, created_at, updated_at)
      VALUES (?, ?, ?, 'INR', 'created', 'mock', null, ?, ?)`
-  ).run(id, req.user.id, amount, now, now)
-  res.json({ ok: true, order: { id, amount_paise: amount, currency: 'INR', status: 'created' } })
+  ).run(id, req.user.id, amountPaise, now, now)
+  res.json({
+    ok: true,
+    order: {
+      id,
+      amountPaise,
+      amountInr: Math.round(amountPaise / 100),
+      currency: 'INR',
+      status: 'created',
+      provider: 'mock',
+    },
+  })
 })
 
 app.post('/api/payments/confirm', authMiddleware, (req, res) => {
@@ -209,9 +222,13 @@ app.post('/api/payments/confirm', authMiddleware, (req, res) => {
   const order = db.prepare('SELECT * FROM orders WHERE id = ? AND user_id = ?').get(orderId, req.user.id)
   if (!order) return res.status(404).json({ ok: false, error: 'Order not found' })
   const now = new Date().toISOString()
-  if (mockResult === 'fail') {
+  if (mockResult === 'fail' || mockResult === 'failed') {
     db.prepare(`UPDATE orders SET status = 'failed', updated_at = ? WHERE id = ?`).run(now, orderId)
-    return res.json({ ok: false, error: 'Payment failed' })
+    return res.json({ ok: false, status: 'failed', error: 'Payment failed' })
+  }
+  if (mockResult === 'cancelled') {
+    db.prepare(`UPDATE orders SET status = 'cancelled', updated_at = ? WHERE id = ?`).run(now, orderId)
+    return res.json({ ok: false, status: 'cancelled', error: 'Payment cancelled' })
   }
   db.prepare(`UPDATE orders SET status = 'paid', provider_ref = ?, updated_at = ? WHERE id = ?`).run(
     uid('ref'),
@@ -230,7 +247,11 @@ app.post('/api/payments/confirm', authMiddleware, (req, res) => {
        source = 'purchase', updated_at = excluded.updated_at`
   ).run(req.user.id, start.toISOString(), end.toISOString(), now)
   const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id)
-  res.json({ ok: true, user: publicUser(user, membershipPublic(getMembership(req.user.id))) })
+  res.json({
+    ok: true,
+    status: 'paid',
+    user: publicUser(user, membershipPublic(getMembership(req.user.id))),
+  })
 })
 
 app.get('/api/completion/status', authMiddleware, (req, res) => {
@@ -301,19 +322,52 @@ app.get('/api/admin/stats', authMiddleware, adminMiddleware, (_req, res) => {
 })
 
 app.patch('/api/admin/course', authMiddleware, adminMiddleware, (req, res) => {
-  const body = req.body || {}
+  const { pricePaise, priceInr, durationDays, title, completion } = req.body || {}
   const cfg = getConfig()
   const now = new Date().toISOString()
+  let nextPaise = Number(cfg?.price_paise) || 0
+  if (pricePaise != null && Number.isFinite(Number(pricePaise))) {
+    nextPaise = Math.round(Number(pricePaise))
+  } else if (priceInr != null && Number.isFinite(Number(priceInr))) {
+    nextPaise = Math.round(Number(priceInr) * 100)
+  }
+  if (nextPaise < 0) {
+    return res.status(400).json({ ok: false, error: 'Price cannot be negative' })
+  }
+  const nextDays =
+    durationDays != null && Number.isFinite(Number(durationDays))
+      ? Math.round(Number(durationDays))
+      : cfg?.duration_days ?? 730
+  const nextTitle = title != null && String(title).trim() ? String(title).trim() : cfg?.title || 'Computer Quest'
   db.prepare(
     `UPDATE course_config SET price_paise = ?, duration_days = ?, title = ?, completion_json = ?, updated_at = ? WHERE id = 1`
   ).run(
-    body.price_paise ?? cfg.price_paise,
-    body.duration_days ?? cfg.duration_days,
-    body.title ?? cfg.title,
-    body.completion_json ?? cfg.completion_json,
+    nextPaise,
+    nextDays,
+    nextTitle,
+    completion ? JSON.stringify(completion) : cfg?.completion_json,
     now
   )
-  res.json({ ok: true, course: getConfig() })
+  const updated = getConfig()
+  res.json({
+    ok: true,
+    course: {
+      title: updated.title,
+      name: updated.title,
+      pricePaise: updated.price_paise,
+      priceInr: Math.round(Number(updated.price_paise) / 100),
+      durationDays: updated.duration_days,
+      durationYears: Math.max(1, Math.round((updated.duration_days || 730) / 365)),
+      completion: (() => {
+        try {
+          return JSON.parse(updated.completion_json || '{}')
+        } catch {
+          return {}
+        }
+      })(),
+      updatedAt: updated.updated_at,
+    },
+  })
 })
 
 app.post('/api/admin/membership', authMiddleware, adminMiddleware, (req, res) => {
