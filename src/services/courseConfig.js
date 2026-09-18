@@ -1,6 +1,7 @@
 /**
  * Course config — price and title come from the API (server course_config).
  * localStorage only caches the last successful fetch for offline display.
+ * The real source of truth is the server durable store (not localStorage).
  */
 
 import { COURSE as DEFAULT_COURSE } from '../config/course'
@@ -70,7 +71,7 @@ function cacheConfig(cfg) {
   return cfg
 }
 
-/** Load latest price/title from server; cache locally. */
+/** Load latest price/title from server; cache locally for display only. */
 export async function fetchCourseConfig() {
   const res = await api.course()
   if (res.offline || !res.ok) {
@@ -82,7 +83,7 @@ export async function fetchCourseConfig() {
 }
 
 /**
- * Admin: persist price/title/duration on the server.
+ * Admin: persist price/title/duration on the server durable store.
  * @param {{ price?: number, name?: string, durationYears?: number }} patch price in INR
  */
 export async function saveCourseConfig(_user, patch) {
@@ -117,7 +118,12 @@ export async function saveCourseConfig(_user, patch) {
     durationYears: durationYears || getCourseConfig().durationYears,
   }
   cacheConfig(config)
-  return { ok: true, config }
+  return {
+    ok: true,
+    config,
+    persistedToGitHub: !!res.persistedToGitHub,
+    warning: res.warning,
+  }
 }
 
 export function getCurriculumMeta() {
