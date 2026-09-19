@@ -192,7 +192,7 @@ async function writeToGitHub(cfg, token) {
 
 /** In-process cache to avoid hitting GitHub on every request */
 let cache = { cfg: null, loadedAt: 0 }
-const CACHE_MS = 10_000
+const CACHE_MS = 10_000 // redeploy: pick up CQ_GITHUB_TOKEN
 
 /**
  * Load durable course config (never from localStorage / browser).
