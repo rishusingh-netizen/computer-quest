@@ -58,7 +58,9 @@ function packagedPath() {
 }
 
 function githubToken() {
-  return process.env.CQ_GITHUB_TOKEN || process.env.GITHUB_TOKEN || ''
+  // Trim in case the Vercel env value was pasted with whitespace/newlines
+  const t = process.env.CQ_GITHUB_TOKEN || process.env.GITHUB_TOKEN || ''
+  return String(t).trim()
 }
 
 function normalize(cfg) {
