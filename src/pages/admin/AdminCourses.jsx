@@ -71,11 +71,11 @@ export default function AdminCourses() {
 
   return (
     <div>
-      <h2 className="card-title mb-3">Course settings</h2>
+      <h2 className="card-title mb-3">Course Pricing</h2>
       <p className="text-sm text-muted mb-3">
-        Set the membership price in INR. It is stored server-side in the durable course config
-        (not browser localStorage) and is used by the public course page and enrollment (mock payment).
-        Change it anytime — students always see the latest saved price after save.
+        Owner/admin control: enter any INR price and save. The latest saved price becomes the active
+        course price for the public course page and enrollment (mock payment). Change it again anytime —
+        nothing is hard-coded in the UI. Stored on the server durable config (not browser localStorage).
       </p>
 
       <div className="card mb-4" style={{ maxWidth: 560 }}>
@@ -143,8 +143,12 @@ export default function AdminCourses() {
         {err && <p className="qh-error mt-2">{err}</p>}
         {msg && <p className="text-sm mt-2" style={{ color: '#047857' }}>{msg}</p>}
         <button type="submit" className="btn btn-primary mt-2" disabled={saving || loading}>
-          {saving ? 'Saving…' : 'Save price & course settings'}
+          {saving ? 'Saving…' : 'Save price (apply immediately)'}
         </button>
+        <p className="text-sm text-muted mt-2">
+          After a successful save, the public course page and checkout use this amount. You can
+          return here later and set a different price without editing code.
+        </p>
       </form>
     </div>
   )
