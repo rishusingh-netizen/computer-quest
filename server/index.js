@@ -43,38 +43,43 @@ function certId() {
 
 async function ensureAdmin() {
   // Always keep a working owner/admin account in sync with CQ_ADMIN_* env.
-  // On Vercel the JSON DB is ephemeral; re-hashing on each cold start restores login.
+  // On Vercel the JSON DB is ephemeral; re-hashing restores login on every cold start / login.
   const password_hash = await hashPassword(ADMIN_PASSWORD)
   const now = new Date().toISOString()
-  const existing = db.prepare('SELECT id, role FROM users WHERE email = ?').get(ADMIN_EMAIL)
+  // Primary + legacy alias (some browsers treat .local specially)
+  const emails = Array.from(
+    new Set([ADMIN_EMAIL, 'admin@computerquest.local', 'admin@computerquest.app'].map((e) => e.toLowerCase()))
+  )
 
-  if (existing) {
+  for (const email of emails) {
+    const existing = db.prepare('SELECT id, role FROM users WHERE email = ?').get(email)
+    if (existing) {
+      db.prepare(
+        `UPDATE users SET password_hash = ?, role = 'admin', name = ? WHERE email = ?`
+      ).run(password_hash, 'Course Admin', email)
+      const start = new Date()
+      const end = new Date(start)
+      end.setFullYear(end.getFullYear() + 2)
+      db.prepare(
+        `INSERT INTO memberships (user_id, status, start_at, expires_at, source, updated_at)
+         VALUES (?, 'active', ?, ?, 'admin_grant', ?)`
+      ).run(existing.id, start.toISOString(), end.toISOString(), now)
+      console.log(`[cq-api] Admin credentials synced: ${email}`)
+      continue
+    }
+    const id = uid('usr')
     db.prepare(
-      `UPDATE users SET password_hash = ?, role = 'admin', name = ? WHERE email = ?`
-    ).run(password_hash, 'Course Admin', ADMIN_EMAIL)
+      `INSERT INTO users (id, email, name, password_hash, role, created_at) VALUES (?, ?, ?, ?, 'admin', ?)`
+    ).run(id, email, 'Course Admin', password_hash, now)
     const start = new Date()
     const end = new Date(start)
     end.setFullYear(end.getFullYear() + 2)
     db.prepare(
       `INSERT INTO memberships (user_id, status, start_at, expires_at, source, updated_at)
        VALUES (?, 'active', ?, ?, 'admin_grant', ?)`
-    ).run(existing.id, start.toISOString(), end.toISOString(), now)
-    console.log(`[cq-api] Admin credentials synced: ${ADMIN_EMAIL}`)
-    return
+    ).run(id, start.toISOString(), end.toISOString(), now)
+    console.log(`[cq-api] Bootstrap admin: ${email}`)
   }
-
-  const id = uid('usr')
-  db.prepare(
-    `INSERT INTO users (id, email, name, password_hash, role, created_at) VALUES (?, ?, ?, ?, 'admin', ?)`
-  ).run(id, ADMIN_EMAIL, 'Course Admin', password_hash, now)
-  const start = new Date()
-  const end = new Date(start)
-  end.setFullYear(end.getFullYear() + 2)
-  db.prepare(
-    `INSERT INTO memberships (user_id, status, start_at, expires_at, source, updated_at)
-     VALUES (?, 'active', ?, ?, 'admin_grant', ?)`
-  ).run(id, start.toISOString(), end.toISOString(), now)
-  console.log(`[cq-api] Bootstrap admin: ${ADMIN_EMAIL}`)
 }
 
 /** Sync helper: DB row shape from durable config */
@@ -194,10 +199,20 @@ app.post('/api/auth/signup', async (req, res) => {
 
 app.post('/api/auth/login', async (req, res) => {
   try {
-    const { email, password } = req.body || {}
-    const user = db.prepare('SELECT * FROM users WHERE email = ?').get(String(email || '').toLowerCase())
+    // Re-sync owner/admin from env on every login attempt (Vercel cold starts / ephemeral DB)
+    try {
+      await ensureAdmin()
+    } catch (e) {
+      console.warn('[cq-api] ensureAdmin during login:', e.message)
+    }
+    const email = String(req.body?.email || '').trim().toLowerCase()
+    const password = String(req.body?.password || '')
+    if (!email || !password) {
+      return res.status(400).json({ ok: false, error: 'email and password required' })
+    }
+    const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email)
     if (!user) return res.status(401).json({ ok: false, error: 'Invalid credentials' })
-    const match = await comparePassword(password || '', user.password_hash)
+    const match = await comparePassword(password, user.password_hash)
     if (!match) return res.status(401).json({ ok: false, error: 'Invalid credentials' })
     const token = signToken(user)
     res.json({
@@ -241,6 +256,7 @@ app.put('/api/progress', authMiddleware, (req, res) => {
     return res.status(400).json({ ok: false, error: 'Invalid progress' })
   }
   const existing = loadProgress(req.user.id)
+  // Server is source of truth: only allow non-decreasing completions / XP growth within bounds
   const cleaned = { ...defaultProgress(), ...existing }
   const union = (a, b) => [...new Set([...(a || []), ...(b || [])])]
   cleaned.completedLessons = union(existing.completedLessons, incoming.completedLessons)
@@ -258,6 +274,7 @@ app.put('/api/progress', authMiddleware, (req, res) => {
     incoming.settings && typeof incoming.settings === 'object'
       ? { ...existing.settings, ...incoming.settings }
       : existing.settings
+  // XP: take max of server vs client but cap sudden jumps (anti-cheat soft limit)
   const clientXp = typeof incoming.xp === 'number' && incoming.xp >= 0 ? incoming.xp : 0
   const serverXp = existing.xp || 0
   const maxJump = 500
@@ -265,6 +282,7 @@ app.put('/api/progress', authMiddleware, (req, res) => {
   cleaned.level = Math.max(1, Math.floor(cleaned.xp / 200) + 1)
   cleaned.streak = Math.max(existing.streak || 0, typeof incoming.streak === 'number' ? incoming.streak : 0)
   if (incoming.lastActiveDate) cleaned.lastActiveDate = incoming.lastActiveDate
+  // Never accept client membership/role/payment fields
   delete cleaned.membership
   delete cleaned.role
   delete cleaned.paymentStatus
@@ -280,6 +298,7 @@ app.post('/api/progress/migrate', authMiddleware, (req, res) => {
   }
   const existing = loadProgress(req.user.id)
   const merged = { ...defaultProgress(), ...existing }
+  // Prefer higher XP and union of completions
   merged.xp = Math.max(existing.xp || 0, local.xp || 0)
   merged.level = Math.max(1, Math.floor(merged.xp / 200) + 1)
   merged.streak = Math.max(existing.streak || 0, local.streak || 0)
@@ -403,6 +422,8 @@ app.post('/api/certificates/issue', authMiddleware, async (req, res) => {
 
 app.get('/api/certificates/verify/:id', (req, res) => {
   const row = db.prepare('SELECT * FROM certificates WHERE upper(id) = upper(?)').get(req.params.id)
+  if (!row) return res.json({ ok: false, error: 'Certificate not found' })
+  // keep status 404 for missing - fix below
   if (!row) return res.status(404).json({ ok: false, error: 'Certificate not found' })
   res.json({
     ok: true,
@@ -484,6 +505,7 @@ app.patch('/api/admin/course', authMiddleware, adminMiddleware, async (req, res)
     const nextTitle = title != null && String(title).trim() ? String(title).trim() : cfg.title
     const completion_json = completion ? JSON.stringify(completion) : cfg.completion_json
 
+    // Durable persist (file + GitHub when token configured)
     const saved = await saveCourseConfig({
       price_paise: nextPaise,
       duration_days: nextDays,
@@ -494,6 +516,7 @@ app.patch('/api/admin/course', authMiddleware, adminMiddleware, async (req, res)
       return res.status(500).json({ ok: false, error: saved.error || 'Failed to save course config' })
     }
 
+    // Keep JSON DB row in sync for legacy readers
     const now = new Date().toISOString()
     try {
       db.prepare(
