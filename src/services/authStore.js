@@ -89,7 +89,7 @@ export function hasActiveAccess(user) {
 }
 
 export function isAdminUser(user) {
-  return user?.role === 'admin'
+  return String(user?.role || '').trim().toLowerCase() === 'admin'
 }
 
 /** @deprecated client orders — use api.createOrder / confirmPayment */

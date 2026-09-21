@@ -40,6 +40,7 @@ export default function App() {
       <ProgressProvider>
         <BrowserRouter>
           <Routes>
+            {/* Student app shell */}
             <Route element={<AppShell />}>
               <Route path="/course" element={<Course />} />
               <Route path="/login" element={<Login />} />
@@ -63,24 +64,25 @@ export default function App() {
               <Route path="/ai-tutor" element={<Paid><AITutor /></Paid>} />
               <Route path="/progress" element={<Paid><ProgressPage /></Paid>} />
               <Route path="/completion" element={<Paid><Completion /></Paid>} />
+            </Route>
 
-              <Route
-                path="/admin"
-                element={
-                  <RequireAdmin>
-                    <AdminLayout />
-                  </RequireAdmin>
-                }
-              >
-                <Route index element={<AdminDashboard />} />
-                <Route path="students" element={<AdminStudents />} />
-                <Route path="courses" element={<AdminCourses />} />
-                <Route path="curriculum" element={<AdminCurriculum />} />
-                <Route path="payments" element={<AdminPayments />} />
-                <Route path="analytics" element={<AdminAnalytics />} />
-                <Route path="settings" element={<AdminSettings />} />
-                <Route path="certificates" element={<AdminCertificates />} />
-              </Route>
+            {/* Admin area — outside student AppShell so /admin/* is not the student dashboard */}
+            <Route
+              path="/admin"
+              element={
+                <RequireAdmin>
+                  <AdminLayout />
+                </RequireAdmin>
+              }
+            >
+              <Route index element={<AdminDashboard />} />
+              <Route path="students" element={<AdminStudents />} />
+              <Route path="courses" element={<AdminCourses />} />
+              <Route path="curriculum" element={<AdminCurriculum />} />
+              <Route path="payments" element={<AdminPayments />} />
+              <Route path="analytics" element={<AdminAnalytics />} />
+              <Route path="settings" element={<AdminSettings />} />
+              <Route path="certificates" element={<AdminCertificates />} />
             </Route>
           </Routes>
         </BrowserRouter>
