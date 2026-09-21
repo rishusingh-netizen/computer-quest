@@ -19,11 +19,15 @@ import {
 } from './courseConfigStore.js'
 
 initDb()
+console.log(
+  '[cq-api] course price durable writes:',
+  process.env.CQ_GITHUB_TOKEN || process.env.GITHUB_TOKEN ? 'token configured' : 'token MISSING (set CQ_GITHUB_TOKEN on Vercel Production)'
+)
 
 const app = express()
 const PORT = process.env.CQ_API_PORT || 3001
-const ADMIN_EMAIL = process.env.CQ_ADMIN_EMAIL || 'admin@computerquest.local'
-const ADMIN_PASSWORD = process.env.CQ_ADMIN_PASSWORD || 'Admin@123'
+const ADMIN_EMAIL = String(process.env.CQ_ADMIN_EMAIL || 'admin@computerquest.local').trim().toLowerCase()
+const ADMIN_PASSWORD = String(process.env.CQ_ADMIN_PASSWORD || 'Admin@123')
 
 app.use(cors({ origin: true, credentials: true }))
 app.use(express.json({ limit: '1mb' }))
@@ -38,11 +42,28 @@ function certId() {
 }
 
 async function ensureAdmin() {
-  const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(ADMIN_EMAIL)
-  if (existing) return
-  const id = uid('usr')
+  // Always keep a working owner/admin account in sync with CQ_ADMIN_* env.
+  // On Vercel the JSON DB is ephemeral; re-hashing on each cold start restores login.
   const password_hash = await hashPassword(ADMIN_PASSWORD)
   const now = new Date().toISOString()
+  const existing = db.prepare('SELECT id, role FROM users WHERE email = ?').get(ADMIN_EMAIL)
+
+  if (existing) {
+    db.prepare(
+      `UPDATE users SET password_hash = ?, role = 'admin', name = ? WHERE email = ?`
+    ).run(password_hash, 'Course Admin', ADMIN_EMAIL)
+    const start = new Date()
+    const end = new Date(start)
+    end.setFullYear(end.getFullYear() + 2)
+    db.prepare(
+      `INSERT INTO memberships (user_id, status, start_at, expires_at, source, updated_at)
+       VALUES (?, 'active', ?, ?, 'admin_grant', ?)`
+    ).run(existing.id, start.toISOString(), end.toISOString(), now)
+    console.log(`[cq-api] Admin credentials synced: ${ADMIN_EMAIL}`)
+    return
+  }
+
+  const id = uid('usr')
   db.prepare(
     `INSERT INTO users (id, email, name, password_hash, role, created_at) VALUES (?, ?, ?, ?, 'admin', ?)`
   ).run(id, ADMIN_EMAIL, 'Course Admin', password_hash, now)
@@ -96,6 +117,7 @@ async function getConfig() {
 }
 
 function getConfigSync() {
+  // Rare sync path — prefer last known DB row; callers that need price should await getConfig()
   return db.prepare('SELECT * FROM course_config WHERE id = 1').get()
 }
 
@@ -161,7 +183,7 @@ app.post('/api/auth/signup', async (req, res) => {
       `INSERT INTO memberships (user_id, status, start_at, expires_at, source, updated_at)
        VALUES (?, 'none', null, null, null, ?)`
     ).run(id, now)
-    const user = db.prepare('SELECT * FROM users WHERE id = ?').get(id)
+    const user = db.prepare('SELECT id, email, name, role, created_at FROM users WHERE id = ?').get(id)
     const token = signToken(user)
     res.json({ ok: true, token, user: publicUser(user, membershipPublic(getMembership(id))) })
   } catch (e) {
@@ -173,13 +195,16 @@ app.post('/api/auth/signup', async (req, res) => {
 app.post('/api/auth/login', async (req, res) => {
   try {
     const { email, password } = req.body || {}
-    if (!email || !password) return res.status(400).json({ ok: false, error: 'email and password required' })
-    const user = db.prepare('SELECT * FROM users WHERE email = ?').get(String(email).toLowerCase())
+    const user = db.prepare('SELECT * FROM users WHERE email = ?').get(String(email || '').toLowerCase())
     if (!user) return res.status(401).json({ ok: false, error: 'Invalid credentials' })
-    const ok = await comparePassword(password, user.password_hash)
-    if (!ok) return res.status(401).json({ ok: false, error: 'Invalid credentials' })
+    const match = await comparePassword(password || '', user.password_hash)
+    if (!match) return res.status(401).json({ ok: false, error: 'Invalid credentials' })
     const token = signToken(user)
-    res.json({ ok: true, token, user: publicUser(user, membershipPublic(getMembership(user.id))) })
+    res.json({
+      ok: true,
+      token,
+      user: publicUser(user, membershipPublic(getMembership(user.id))),
+    })
   } catch (e) {
     console.error(e)
     res.status(500).json({ ok: false, error: 'Login failed' })
@@ -187,11 +212,13 @@ app.post('/api/auth/login', async (req, res) => {
 })
 
 app.get('/api/auth/me', authMiddleware, (req, res) => {
-  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id)
-  if (!user) return res.status(404).json({ ok: false, error: 'User not found' })
-  res.json({ ok: true, user: publicUser(user, membershipPublic(getMembership(user.id))) })
+  res.json({
+    ok: true,
+    user: publicUser(req.user, membershipPublic(getMembership(req.user.id))),
+  })
 })
 
+// Course config (public price/title; completion rules admin can change)
 app.get('/api/course', async (_req, res) => {
   try {
     const cfg = await getConfig()
@@ -203,6 +230,7 @@ app.get('/api/course', async (_req, res) => {
   }
 })
 
+// Progress — server is source of truth
 app.get('/api/progress', authMiddleware, (req, res) => {
   res.json({ ok: true, progress: loadProgress(req.user.id) })
 })
@@ -268,6 +296,7 @@ app.post('/api/progress/migrate', authMiddleware, (req, res) => {
   res.json({ ok: true, progress: merged })
 })
 
+// Payments — server verifies; client success alone never grants access
 app.post('/api/payments/create-order', authMiddleware, async (req, res) => {
   try {
     const cfg = await getConfig()
@@ -406,8 +435,7 @@ app.get('/api/certificates/mine', authMiddleware, (req, res) => {
 app.get('/api/admin/students', authMiddleware, adminMiddleware, (_req, res) => {
   const users = db
     .prepare(
-      `SELECT u.id, u.name, u.email, u.role, u.created_at,
-              m.status as membership_status, m.expires_at
+      `SELECT u.id, u.name, u.email, u.role, u.created_at, m.status as membership_status, m.expires_at
        FROM users u LEFT JOIN memberships m ON m.user_id = u.id`
     )
     .all()
@@ -489,6 +517,7 @@ app.patch('/api/admin/course', authMiddleware, adminMiddleware, async (req, res)
   }
 })
 
+/** Admin grant / revoke 2-year (or configured) membership — database only */
 app.post('/api/admin/membership', authMiddleware, adminMiddleware, async (req, res) => {
   const { userId, action } = req.body || {}
   if (!userId || !['grant', 'revoke'].includes(action)) {
