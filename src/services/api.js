@@ -16,7 +16,10 @@ function resolveApiBase() {
   }
   // Local Vite dev → local Express
   if (import.meta.env.DEV) return 'http://127.0.0.1:3001'
-  // Production build: use live Vercel API (same deployment)
+  // Production: same-origin /api (works on computer-quest.vercel.app and custom domains)
+  if (typeof window !== 'undefined' && window.location?.origin) {
+    return window.location.origin
+  }
   return PRODUCTION_API_ORIGIN
 }
 

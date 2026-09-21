@@ -37,7 +37,10 @@ export async function signUp({ name, email, password }) {
 }
 
 export async function login({ email, password }) {
-  const res = await api.login({ email, password })
+  const res = await api.login({
+    email: String(email || '').trim().toLowerCase(),
+    password: String(password || ''),
+  })
   if (res.offline) return { ok: false, error: 'Server offline. Start the API (npm run server).' }
   if (!res.ok) return { ok: false, error: res.error || 'Login failed' }
   setToken(res.token)

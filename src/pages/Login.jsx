@@ -31,13 +31,13 @@ export default function Login() {
   return (
     <div className="card" style={{ maxWidth: 420, margin: '24px auto' }}>
       <h2 className="card-title">Log in</h2>
-      <p className="text-sm text-muted mb-3">Access your Computer Quest account.</p>
+      <p className="text-sm text-muted mb-3">Access your Computer Quest account. Owner: use your admin email (e.g. admin@computerquest.local).</p>
       <form onSubmit={onSubmit}>
         <label className="text-sm">Email</label>
         <input
           className="qh-input-row"
           style={{ width: '100%', marginBottom: 12, padding: 10, borderRadius: 8, border: '1px solid var(--cq-border)' }}
-          type="email"
+          type="text" inputMode="email" autoCapitalize="none" autoCorrect="off" spellCheck={false}
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
