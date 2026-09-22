@@ -1,162 +1,272 @@
 import { Link } from 'react-router-dom'
-import { useProgress } from '../context/ProgressContext'
-import { useAuth } from '../context/AuthContext'
-import { LEVELS } from '../data/levels'
-import { GAMES } from '../data/games'
 import {
   BookOpen,
-  FlaskConical,
-  Gamepad2,
-  ClipboardList,
-  RefreshCw,
-  Bot,
-  Trophy,
   Zap,
-  ChevronRight,
+  Flame,
+  Target,
+  Trophy,
+  ArrowRight,
+  CheckCircle2,
 } from '../components/ui/Icons'
+import { useProgress } from '../context/ProgressContext'
+import { useEffect, useState } from 'react'
+import { useAuth } from '../context/AuthContext'
+import { COURSE } from '../config/course'
+import { evaluateCompletion } from '../services/completion'
+import { api } from '../services/api'
+import { LEVELS, getTotalLessons } from '../data/levels'
 
 export default function Dashboard() {
+  const progress = useProgress()
   const {
     xp,
     level,
     streak,
-    completedLessons,
-    practiceCompleted,
-    progressPercent,
     lessonsCompletedCount,
-    totalLessons,
-  } = useProgress()
-  const { user, hasAccess } = useAuth()
+    progressPercent,
+    completedLessons,
+    weakTopics,
+  } = progress
+  const { hasAccess, accessDaysLeft, isLoggedIn, user } = useAuth()
+  const membership = user?.membership
+  const completion = evaluateCompletion(progress)
+  const [certificate, setCertificate] = useState(null)
 
-  const nextLevel = LEVELS.find((l) => !completedLessons.some((id) => id.startsWith(`L${l.id}-`))) || LEVELS[0]
-  const recentGames = GAMES.slice(0, 3)
+  useEffect(() => {
+    let cancelled = false
+    if (!user) {
+      setCertificate(null)
+      return
+    }
+    ;(async () => {
+      const res = await api.myCertificate()
+      if (!cancelled && res.ok) setCertificate(res.certificate || null)
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [user])
+
+  // Recommend next incomplete lesson across levels
+  let nextLesson = null
+  let nextLevelTitle = ''
+  for (const lvl of LEVELS) {
+    const found = lvl.lessons.find((l) => !completedLessons.includes(l.id))
+    if (found) {
+      nextLesson = found
+      nextLevelTitle = lvl.title
+      break
+    }
+  }
+  if (!nextLesson) {
+    nextLesson = LEVELS[0].lessons[0]
+    nextLevelTitle = LEVELS[0].title
+  }
+
+  const todayMission = nextLesson
+    ? `Complete “${nextLesson.title}” in ${nextLevelTitle}`
+    : 'Explore the Practice Lab or Game Zone'
+
+  const topWeak = (weakTopics || []).slice(0, 3)
+
+  const firstName = (user?.name || 'Student').split(' ')[0]
 
   return (
     <div>
+      {/* Welcome */}
       <div className="card welcome-card mb-4">
-        <h2>Welcome back{user?.name ? `, ${user.name.split(' ')[0]}` : ''}!</h2>
-        <p>Continue your Computer Quest journey. Learn, practice, and master computer skills.</p>
-        <div className="flex gap-3 mt-3" style={{ flexWrap: 'wrap' }}>
-          <Link to="/learn" className="btn btn-secondary" style={{ background: 'rgba(255,255,255,0.2)', color: 'white', border: 'none' }}>
-            Continue Learning
-          </Link>
-          <Link to="/practice" className="btn btn-secondary" style={{ background: 'rgba(255,255,255,0.15)', color: 'white', border: 'none' }}>
-            Practice Lab
-          </Link>
-        </div>
+        <h2>Welcome back, {firstName}! 👋</h2>
+        <p>
+          Learn computer skills step by step — from basics to advanced. Follow the path:{' '}
+          <strong>Learn → Practice → Play → Test → Revise → Progress</strong>.
+        </p>
       </div>
 
+
+      {isLoggedIn && (
+        <div className="card mb-4">
+          <div className="card-header">
+            <h3 className="card-title">{COURSE.name} Access</h3>
+          </div>
+          {hasAccess ? (
+            <p className="text-sm">
+              <span className="badge badge-success">Active</span>
+              {' '}{accessDaysLeft != null ? accessDaysLeft : '—'} days remaining
+              {membership?.expiresAt && (
+                <> · Expires {new Date(membership.expiresAt).toLocaleDateString('en-IN')}</>
+              )}
+            </p>
+          ) : (
+            <p className="text-sm">
+              No active membership.{' '}
+              <Link to="/course">Enroll now</Link>
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Stats */}
       <div className="grid-4 mb-4">
         <div className="card stat-card">
           <div className="stat-icon" style={{ background: '#eef2ff', color: '#4f46e5' }}>
             <Zap size={20} />
           </div>
           <div className="stat-value">{xp}</div>
-          <div className="stat-label">Total XP</div>
-        </div>
-        <div className="card stat-card">
-          <div className="stat-icon" style={{ background: '#d1fae5', color: '#047857' }}>
-            <Trophy size={20} />
-          </div>
-          <div className="stat-value">Lv {level}</div>
-          <div className="stat-label">Your Level</div>
+          <div className="stat-label">XP Points</div>
         </div>
         <div className="card stat-card">
           <div className="stat-icon" style={{ background: '#fef3c7', color: '#b45309' }}>
-            🔥
+            <Flame size={20} />
           </div>
           <div className="stat-value">{streak}</div>
           <div className="stat-label">Day Streak</div>
         </div>
         <div className="card stat-card">
-          <div className="stat-icon" style={{ background: '#e0f2fe', color: '#0369a1' }}>
-            <BookOpen size={20} />
+          <div className="stat-icon" style={{ background: '#d1fae5', color: '#047857' }}>
+            <CheckCircle2 size={20} />
           </div>
-          <div className="stat-value">{progressPercent}%</div>
-          <div className="stat-label">Course Progress</div>
+          <div className="stat-value">
+            {lessonsCompletedCount}/{getTotalLessons()}
+          </div>
+          <div className="stat-label">Lessons Done</div>
+        </div>
+        <div className="card stat-card">
+          <div className="stat-icon" style={{ background: '#fce7f3', color: '#be185d' }}>
+            <Trophy size={20} />
+          </div>
+          <div className="stat-value">{level}</div>
+          <div className="stat-label">Your Level</div>
         </div>
       </div>
 
+      {/* Progress + Mission */}
       <div className="grid-2 mb-4">
         <div className="card">
           <div className="card-header">
-            <h3 className="card-title">Course progress</h3>
-            <Link to="/progress" className="text-sm" style={{ color: 'var(--cq-primary)' }}>
-              Details <ChevronRight size={14} style={{ verticalAlign: 'middle' }} />
-            </Link>
+            <h3 className="card-title">Overall Progress</h3>
+            <span className="badge badge-primary">{progressPercent}%</span>
           </div>
-          <p className="text-sm text-muted mb-2">
-            {lessonsCompletedCount} of {totalLessons} lessons completed
-          </p>
-          <div className="progress-bar mb-3">
-            <div className="progress-bar-fill" style={{ width: `${progressPercent}%` }} />
+          <div className="progress-bar mb-2">
+            <div
+              className="progress-bar-fill"
+              style={{ width: `${progressPercent}%` }}
+            />
           </div>
-          <p className="text-sm">
-            Practice completed: <strong>{practiceCompleted.length}</strong>
+          <p className="text-sm text-muted">
+            {lessonsCompletedCount} of {getTotalLessons()} lessons completed across 9 levels.
           </p>
-          {!hasAccess && (
-            <Link to="/checkout" className="btn btn-primary btn-sm mt-3">
-              Unlock full course
-            </Link>
-          )}
         </div>
 
         <div className="card">
           <div className="card-header">
-            <h3 className="card-title">Continue learning</h3>
+            <h3 className="card-title">Today’s Mission</h3>
+            <Target size={18} color="#4f46e5" />
           </div>
-          {nextLevel && (
-            <>
-              <p className="font-semibold">{nextLevel.title}</p>
-              <p className="text-sm text-muted mb-3">{nextLevel.description}</p>
-              <Link to={`/learn`} className="btn btn-primary btn-sm">
-                Open Learn
-              </Link>
-            </>
+          <p className="mb-3 text-sm">{todayMission}</p>
+          <Link
+            to={nextLesson ? `/learn/${nextLesson.id}` : '/learn'}
+            className="btn btn-primary btn-sm"
+          >
+            Continue Learning <ArrowRight size={16} />
+          </Link>
+        </div>
+      </div>
+
+      {/* Recommended */}
+      <div className="card mb-4">
+        <div className="card-header">
+          <h3 className="card-title">Recommended Next Lesson</h3>
+        </div>
+        <div className="flex items-center justify-between gap-4" style={{ flexWrap: 'wrap' }}>
+          <div>
+            <p className="font-semibold">{nextLesson.title}</p>
+            <p className="text-sm text-muted">
+              {nextLevelTitle} · {nextLesson.duration} · +{nextLesson.xp} XP
+            </p>
+          </div>
+          <Link to={`/learn/${nextLesson.id}`} className="btn btn-primary">
+            Start Lesson <BookOpen size={16} />
+          </Link>
+        </div>
+      </div>
+
+      {completion.eligible && (
+        <div className="card mb-4" style={{ borderColor: '#10b981' }}>
+          <div className="card-header">
+            <h3 className="card-title">Course Completed</h3>
+          </div>
+          <p className="text-sm">Congratulations — you met all Computer Quest completion requirements.</p>
+          {certificate ? (
+            <Link to={`/certificate/${certificate.id}`} className="btn btn-primary btn-sm mt-2">
+              View Certificate
+            </Link>
+          ) : (
+            <Link to="/completion" className="btn btn-primary btn-sm mt-2">
+              View Certificate
+            </Link>
           )}
         </div>
-      </div>
+      )}
 
-      <div className="card mb-4">
-        <h3 className="card-title mb-3">Quick links</h3>
-        <div className="grid-3">
-          <Link to="/learn" className="nav-item" style={{ border: '1px solid var(--cq-border)', borderRadius: 10 }}>
-            <BookOpen size={20} /> <span>Learn</span>
-          </Link>
-          <Link to="/practice" className="nav-item" style={{ border: '1px solid var(--cq-border)', borderRadius: 10 }}>
-            <FlaskConical size={20} /> <span>Practice Lab</span>
-          </Link>
-          <Link to="/games" className="nav-item" style={{ border: '1px solid var(--cq-border)', borderRadius: 10 }}>
-            <Gamepad2 size={20} /> <span>Game Zone</span>
-          </Link>
-          <Link to="/tests" className="nav-item" style={{ border: '1px solid var(--cq-border)', borderRadius: 10 }}>
-            <ClipboardList size={20} /> <span>Tests</span>
-          </Link>
-          <Link to="/revision" className="nav-item" style={{ border: '1px solid var(--cq-border)', borderRadius: 10 }}>
-            <RefreshCw size={20} /> <span>Revision</span>
-          </Link>
-          <Link to="/ai-tutor" className="nav-item" style={{ border: '1px solid var(--cq-border)', borderRadius: 10 }}>
-            <Bot size={20} /> <span>AI Tutor</span>
+      {!completion.eligible && (
+        <div className="card mb-4">
+          <div className="card-header">
+            <h3 className="card-title">Completion progress</h3>
+          </div>
+          <p className="text-sm">{completion.percent}% toward certificate eligibility</p>
+          <Link to="/completion" className="btn btn-secondary btn-sm mt-2">
+            View requirements
           </Link>
         </div>
-      </div>
+      )}
 
-      <div className="card">
-        <div className="card-header">
-          <h3 className="card-title">Featured games</h3>
-          <Link to="/games" className="text-sm" style={{ color: 'var(--cq-primary)' }}>
-            All games
+      {topWeak.length > 0 && (
+        <div className="card mb-4" style={{ borderColor: '#fbbf24' }}>
+          <div className="card-header">
+            <h3 className="card-title">Topics to improve</h3>
+          </div>
+          <p className="text-sm text-muted mb-2">Based on your recent test answers.</p>
+          <div className="flex gap-2 mb-3" style={{ flexWrap: 'wrap' }}>
+            {topWeak.map((t) => (
+              <span key={t} className="badge badge-warning">
+                {t}
+              </span>
+            ))}
+          </div>
+          <Link to="/revision" className="btn btn-primary btn-sm">
+            Open Revision
           </Link>
         </div>
-        <div className="grid-3">
-          {recentGames.map((g) => (
-            <Link key={g.id} to={`/games/${g.id}`} className="card" style={{ padding: 16 }}>
-              <p className="font-semibold">{g.title}</p>
-              <p className="text-sm text-muted">{g.description}</p>
-              <span className="badge badge-primary mt-2">{g.xpReward} XP</span>
-            </Link>
-          ))}
-        </div>
+      )}
+
+      {/* Quick links */}
+      <div className="grid-3">
+        <Link to="/practice" className="card" style={{ textAlign: 'center' }}>
+          <p className="font-semibold">Practice Lab</p>
+          <p className="text-sm text-muted mt-1">Hands-on simulations</p>
+        </Link>
+        <Link to="/games" className="card" style={{ textAlign: 'center' }}>
+          <p className="font-semibold">Game Zone</p>
+          <p className="text-sm text-muted mt-1">Learn by playing</p>
+        </Link>
+        <Link to="/tests" className="card" style={{ textAlign: 'center' }}>
+          <p className="font-semibold">Tests</p>
+          <p className="text-sm text-muted mt-1">Level quizzes & scores</p>
+        </Link>
+      </div>
+      <div className="grid-3 mt-3">
+        <Link to="/revision" className="card" style={{ textAlign: 'center' }}>
+          <p className="font-semibold">Revision</p>
+          <p className="text-sm text-muted mt-1">Weak topics & review</p>
+        </Link>
+        <Link to="/ai-tutor" className="card" style={{ textAlign: 'center' }}>
+          <p className="font-semibold">AI Tutor</p>
+          <p className="text-sm text-muted mt-1">Ask anything</p>
+        </Link>
+        <Link to="/progress" className="card" style={{ textAlign: 'center' }}>
+          <p className="font-semibold">Progress</p>
+          <p className="text-sm text-muted mt-1">XP, tests & badges</p>
+        </Link>
       </div>
     </div>
   )
