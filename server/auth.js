@@ -5,6 +5,11 @@ import { db } from './db.js'
 const JWT_SECRET = process.env.CQ_JWT_SECRET || 'cq-dev-jwt-secret-change-in-production'
 const JWT_DAYS = 14
 
+const ADMIN_EMAIL = String(process.env.CQ_ADMIN_EMAIL || 'admin@computerquest.local').trim().toLowerCase()
+const ADMIN_EMAILS = new Set(
+  [ADMIN_EMAIL, 'admin@computerquest.local', 'admin@computerquest.app'].map((e) => e.toLowerCase())
+)
+
 export function signToken(user) {
   return jwt.sign(
     { sub: user.id, role: user.role, email: user.email },
@@ -21,13 +26,67 @@ export function verifyToken(token) {
   }
 }
 
+/**
+ * Resolve the session user for a verified JWT.
+ * On Vercel the JSON DB under /tmp is per-instance. Login may create user id A on
+ * instance 1; a later request can hit instance 2 with an empty DB. For valid admin
+ * tokens we rehydrate the admin row from JWT claims so Admin → Courses saves work.
+ */
+function resolveSessionUser(payload) {
+  if (!payload?.sub) return null
+
+  let user = db.prepare('SELECT id, email, name, role, created_at FROM users WHERE id = ?').get(payload.sub)
+  if (user) return user
+
+  const email = String(payload.email || '').trim().toLowerCase()
+  if (email) {
+    user = db.prepare('SELECT id, email, name, role, created_at FROM users WHERE email = ?').get(email)
+    if (user) return user
+  }
+
+  // Rehydrate admin only — JWT already verified with server secret
+  if (payload.role === 'admin' && email && ADMIN_EMAILS.has(email)) {
+    const now = new Date().toISOString()
+    const id = String(payload.sub)
+    try {
+      db.prepare(
+        `INSERT INTO users (id, email, name, password_hash, role, created_at) VALUES (?, ?, ?, ?, 'admin', ?)`
+      ).run(id, email, 'Course Admin', '', now)
+    } catch {
+      // concurrent insert or existing — continue
+    }
+    try {
+      const start = new Date()
+      const end = new Date(start)
+      end.setFullYear(end.getFullYear() + 2)
+      db.prepare(
+        `INSERT INTO memberships (user_id, status, start_at, expires_at, source, updated_at)
+         VALUES (?, 'active', ?, ?, 'admin_grant', ?)`
+      ).run(id, start.toISOString(), end.toISOString(), now)
+    } catch {}
+    user =
+      db.prepare('SELECT id, email, name, role, created_at FROM users WHERE id = ?').get(id) ||
+      db.prepare('SELECT id, email, name, role, created_at FROM users WHERE email = ?').get(email)
+    if (user) return user
+    return {
+      id,
+      email,
+      name: 'Course Admin',
+      role: 'admin',
+      created_at: now,
+    }
+  }
+
+  return null
+}
+
 export function authMiddleware(req, res, next) {
   const header = req.headers.authorization || ''
   const token = header.startsWith('Bearer ') ? header.slice(7) : null
   if (!token) return res.status(401).json({ ok: false, error: 'Unauthorized' })
   const payload = verifyToken(token)
   if (!payload) return res.status(401).json({ ok: false, error: 'Invalid session' })
-  const user = db.prepare('SELECT id, email, name, role, created_at FROM users WHERE id = ?').get(payload.sub)
+  const user = resolveSessionUser(payload)
   if (!user) return res.status(401).json({ ok: false, error: 'User not found' })
   req.user = user
   next()
