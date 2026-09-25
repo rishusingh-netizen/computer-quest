@@ -92,7 +92,6 @@ export default function Dashboard() {
         </div>
       </section>
 
-
       {isLoggedIn && (
         <div className="card mb-4">
           <div className="card-header">
@@ -101,7 +100,8 @@ export default function Dashboard() {
           {hasAccess ? (
             <p className="text-sm">
               <span className="badge badge-success">Active</span>
-              {' '}{accessDaysLeft != null ? accessDaysLeft : '—'} days remaining
+              {' '}
+              {accessDaysLeft != null ? accessDaysLeft : '—'} days remaining
               {membership?.expiresAt && (
                 <> · Expires {new Date(membership.expiresAt).toLocaleDateString('en-IN')}</>
               )}
@@ -133,75 +133,92 @@ export default function Dashboard() {
         </div>
         <div className="card stat-card">
           <div className="stat-icon" style={{ background: '#d1fae5', color: '#047857' }}>
-            <Target size={20} />
+            <CheckCircle2 size={20} />
           </div>
-          <div className="stat-value">{level}</div>
-          <div className="stat-label">Level</div>
+          <div className="stat-value">
+            {lessonsCompletedCount}/{getTotalLessons()}
+          </div>
+          <div className="stat-label">Lessons Done</div>
         </div>
         <div className="card stat-card">
           <div className="stat-icon" style={{ background: '#fce7f3', color: '#be185d' }}>
-            <BookOpen size={20} />
+            <Trophy size={20} />
           </div>
-          <div className="stat-value">{lessonsCompletedCount}/{getTotalLessons()}</div>
-          <div className="stat-label">Lessons</div>
+          <div className="stat-value">{level}</div>
+          <div className="stat-label">Your Level</div>
         </div>
       </div>
 
-      {/* Progress bar */}
-      <div className="card mb-4">
-        <div className="card-header">
-          <h3 className="card-title">Course progress</h3>
-          <span className="text-sm text-muted">{progressPercent}%</span>
-        </div>
-        <div className="progress-bar">
-          <div className="progress-fill" style={{ width: `${progressPercent}%` }} />
-        </div>
-      </div>
-
-      {/* Today mission */}
-      <div className="card mb-4">
-        <div className="card-header">
-          <h3 className="card-title">Today&apos;s mission</h3>
-        </div>
-        <p className="text-sm mb-3">{todayMission}</p>
-        {nextLesson && (
-          <Link to={`/learn/${nextLesson.id}`} className="btn btn-primary btn-sm">
-            Open lesson <ArrowRight size={14} />
-          </Link>
-        )}
-      </div>
-
-      {completion?.eligible && (
-        <div className="card mb-4" style={{ borderColor: '#34d399' }}>
+      {/* Progress + Mission */}
+      <div className="grid-2 mb-4">
+        <div className="card">
           <div className="card-header">
-            <h3 className="card-title">
-              <CheckCircle2 size={18} style={{ verticalAlign: 'middle', marginRight: 6 }} />
-              Ready for certificate
-            </h3>
+            <h3 className="card-title">Overall Progress</h3>
+            <span className="badge badge-primary">{progressPercent}%</span>
           </div>
-          <p className="text-sm mb-2">You meet the completion requirements.</p>
-          <Link to="/completion" className="btn btn-primary btn-sm">
-            View completion
+          <div className="progress-bar mb-2">
+            <div
+              className="progress-bar-fill"
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
+          <p className="text-sm text-muted">
+            {lessonsCompletedCount} of {getTotalLessons()} lessons completed across 9 levels.
+          </p>
+        </div>
+
+        <div className="card">
+          <div className="card-header">
+            <h3 className="card-title">Today’s Mission</h3>
+            <Target size={18} color="#4f46e5" />
+          </div>
+          <p className="mb-3 text-sm">{todayMission}</p>
+          <Link
+            to={nextLesson ? `/learn/${nextLesson.id}` : '/learn'}
+            className="btn btn-primary btn-sm"
+          >
+            Continue Learning <ArrowRight size={16} />
           </Link>
+        </div>
+      </div>
+
+      {/* Recommended */}
+      <div className="card mb-4">
+        <div className="card-header">
+          <h3 className="card-title">Recommended Next Lesson</h3>
+        </div>
+        <div className="flex items-center justify-between gap-4" style={{ flexWrap: 'wrap' }}>
+          <div>
+            <p className="font-semibold">{nextLesson.title}</p>
+            <p className="text-sm text-muted">
+              {nextLevelTitle} · {nextLesson.duration} · +{nextLesson.xp} XP
+            </p>
+          </div>
+          <Link to={`/learn/${nextLesson.id}`} className="btn btn-primary">
+            Start Lesson <BookOpen size={16} />
+          </Link>
+        </div>
+      </div>
+
+      {completion.eligible && (
+        <div className="card mb-4" style={{ borderColor: '#10b981' }}>
+          <div className="card-header">
+            <h3 className="card-title">Course Completed</h3>
+          </div>
+          <p className="text-sm">Congratulations — you met all Computer Quest completion requirements.</p>
+          {certificate ? (
+            <Link to={`/certificate/${certificate.id}`} className="btn btn-primary btn-sm mt-2">
+              View Certificate
+            </Link>
+          ) : (
+            <Link to="/completion" className="btn btn-primary btn-sm mt-2">
+              View Certificate
+            </Link>
+          )}
         </div>
       )}
 
-      {certificate && (
-        <div className="card mb-4">
-          <div className="card-header">
-            <h3 className="card-title">
-              <Trophy size={18} style={{ verticalAlign: 'middle', marginRight: 6 }} />
-              Your certificate
-            </h3>
-          </div>
-          <p className="text-sm mb-2">Certificate ID: {certificate.id}</p>
-          <Link to={`/certificate/${certificate.id}`} className="btn btn-secondary btn-sm">
-            View certificate
-          </Link>
-        </div>
-      )}
-
-      {!completion?.eligible && (
+      {!completion.eligible && (
         <div className="card mb-4">
           <div className="card-header">
             <h3 className="card-title">Completion progress</h3>
