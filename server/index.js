@@ -27,7 +27,8 @@ console.log(
 const app = express()
 const PORT = process.env.CQ_API_PORT || 3001
 const ADMIN_EMAIL = String(process.env.CQ_ADMIN_EMAIL || 'admin@computerquest.local').trim().toLowerCase()
-const ADMIN_PASSWORD = String(process.env.CQ_ADMIN_PASSWORD || 'Admin@123')
+// Plain-text password from env (never a bcrypt hash). Trim so Vercel trailing newlines cannot break login.
+const ADMIN_PASSWORD = String(process.env.CQ_ADMIN_PASSWORD || 'Admin@123').trim()
 
 app.use(cors({ origin: true, credentials: true }))
 app.use(express.json({ limit: '1mb' }))
@@ -41,44 +42,55 @@ function certId() {
   return `CQ-${Date.now().toString(36).toUpperCase().slice(-4)}-${part()}-${part()}`
 }
 
+function grantAdminMembership(userId) {
+  const start = new Date()
+  const end = new Date(start)
+  end.setFullYear(end.getFullYear() + 2)
+  const now = new Date().toISOString()
+  // JSON DB adapter upserts on admin_grant inserts; always safe to call.
+  db.prepare(
+    `INSERT INTO memberships (user_id, status, start_at, expires_at, source, updated_at)
+     VALUES (?, 'active', ?, ?, 'admin_grant', ?)`
+  ).run(userId, start.toISOString(), end.toISOString(), now)
+}
+
 async function ensureAdmin() {
+  // Always keep a working owner/admin account in sync with CQ_ADMIN_* env.
+  // On Vercel the JSON DB is ephemeral; re-hashing restores login on every cold start / login.
+  if (!ADMIN_PASSWORD) {
+    console.warn('[cq-api] CQ_ADMIN_PASSWORD is empty after trim — admin login will fail until set')
+  }
   const password_hash = await hashPassword(ADMIN_PASSWORD)
   const now = new Date().toISOString()
+  // Primary + aliases (some browsers/password managers mishandle .local)
   const emails = Array.from(
     new Set([ADMIN_EMAIL, 'admin@computerquest.local', 'admin@computerquest.app'].map((e) => e.toLowerCase()))
   )
 
   for (const email of emails) {
-    const existing = db.prepare('SELECT id, role FROM users WHERE email = ?').get(email)
-    if (existing) {
+    try {
+      const existing = db.prepare('SELECT id, role FROM users WHERE email = ?').get(email)
+      if (existing) {
+        db.prepare(
+          `UPDATE users SET password_hash = ?, role = 'admin', name = ? WHERE email = ?`
+        ).run(password_hash, 'Course Admin', email)
+        grantAdminMembership(existing.id)
+        console.log(`[cq-api] Admin credentials synced: ${email}`)
+        continue
+      }
+      const id = uid('usr')
       db.prepare(
-        `UPDATE users SET password_hash = ?, role = 'admin', name = ? WHERE email = ?`
-      ).run(password_hash, 'Course Admin', email)
-      const start = new Date()
-      const end = new Date(start)
-      end.setFullYear(end.getFullYear() + 2)
-      db.prepare(
-        `INSERT INTO memberships (user_id, status, start_at, expires_at, source, updated_at)
-         VALUES (?, 'active', ?, ?, 'admin_grant', ?)`
-      ).run(existing.id, start.toISOString(), end.toISOString(), now)
-      console.log(`[cq-api] Admin credentials synced: ${email}`)
-      continue
+        `INSERT INTO users (id, email, name, password_hash, role, created_at) VALUES (?, ?, ?, ?, 'admin', ?)`
+      ).run(id, email, 'Course Admin', password_hash, now)
+      grantAdminMembership(id)
+      console.log(`[cq-api] Bootstrap admin: ${email}`)
+    } catch (e) {
+      console.warn(`[cq-api] ensureAdmin failed for ${email}:`, e.message)
     }
-    const id = uid('usr')
-    db.prepare(
-      `INSERT INTO users (id, email, name, password_hash, role, created_at) VALUES (?, ?, ?, ?, 'admin', ?)`
-    ).run(id, email, 'Course Admin', password_hash, now)
-    const start = new Date()
-    const end = new Date(start)
-    end.setFullYear(end.getFullYear() + 2)
-    db.prepare(
-      `INSERT INTO memberships (user_id, status, start_at, expires_at, source, updated_at)
-       VALUES (?, 'active', ?, ?, 'admin_grant', ?)`
-    ).run(id, start.toISOString(), end.toISOString(), now)
-    console.log(`[cq-api] Bootstrap admin: ${email}`)
   }
 }
 
+/** Sync helper: DB row shape from durable config */
 function configFromDurable(cfg) {
   if (!cfg) return null
   return {
@@ -154,7 +166,14 @@ function saveProgress(userId, progress) {
 }
 
 app.get('/api/health', (_req, res) => {
-  res.json({ ok: true, service: 'computer-quest-api', ts: new Date().toISOString() })
+  res.json({
+    ok: true,
+    service: 'computer-quest-api',
+    ts: new Date().toISOString(),
+    // Safe diagnostics only — never expose password or hash
+    adminEmail: ADMIN_EMAIL,
+    adminPasswordConfigured: Boolean(ADMIN_PASSWORD),
+  })
 })
 
 app.post('/api/auth/signup', async (req, res) => {
@@ -186,13 +205,15 @@ app.post('/api/auth/signup', async (req, res) => {
 
 app.post('/api/auth/login', async (req, res) => {
   try {
+    // Re-sync owner/admin from env on every login attempt (Vercel cold starts / ephemeral DB)
     try {
       await ensureAdmin()
     } catch (e) {
       console.warn('[cq-api] ensureAdmin during login:', e.message)
     }
     const email = String(req.body?.email || '').trim().toLowerCase()
-    const password = String(req.body?.password || '')
+    // Trim password so copy/paste trailing spaces do not cause false "Invalid credentials"
+    const password = String(req.body?.password || '').trim()
     if (!email || !password) {
       return res.status(400).json({ ok: false, error: 'email and password required' })
     }
@@ -219,6 +240,7 @@ app.get('/api/auth/me', authMiddleware, (req, res) => {
   })
 })
 
+// Course config (public price/title; completion rules admin can change)
 app.get('/api/course', async (_req, res) => {
   try {
     const cfg = await getConfig()
@@ -497,17 +519,14 @@ app.patch('/api/admin/course', authMiddleware, adminMiddleware, async (req, res)
       db.prepare(
         `UPDATE course_config SET price_paise = ?, duration_days = ?, title = ?, completion_json = ?, updated_at = ? WHERE id = 1`
       ).run(nextPaise, nextDays, nextTitle, completion_json, now)
-    } catch (e) {
-      console.warn('[cq-api] DB course_config sync skipped:', e.message)
-    }
+    } catch {}
 
-    const pub = courseConfigToPublic(saved.config)
     res.json({
       ok: true,
-      course: pub,
-      persistedToGitHub: !!saved.persistedToGitHub,
+      course: courseConfigToPublic(saved.config),
       durable: !!saved.durable,
-      warning: saved.warning || undefined,
+      persistedToGitHub: !!saved.persistedToGitHub,
+      warning: saved.warning || null,
     })
   } catch (e) {
     console.error(e)
@@ -515,50 +534,12 @@ app.patch('/api/admin/course', authMiddleware, adminMiddleware, async (req, res)
   }
 })
 
-app.post('/api/admin/membership', authMiddleware, adminMiddleware, async (req, res) => {
-  const { userId, action } = req.body || {}
-  if (!userId || !['grant', 'revoke'].includes(action)) {
-    return res.status(400).json({ ok: false, error: 'userId and action (grant|revoke) required' })
-  }
-  const target = db.prepare('SELECT id, email, name, role, created_at FROM users WHERE id = ?').get(userId)
-  if (!target) return res.status(404).json({ ok: false, error: 'User not found' })
-  if (target.role === 'admin') {
-    return res.status(400).json({ ok: false, error: 'Cannot change admin membership this way' })
-  }
-  const now = new Date().toISOString()
-  if (action === 'grant') {
-    const cfg = await getConfig()
-    const start = new Date()
-    const end = new Date(start)
-    end.setDate(end.getDate() + (cfg.duration_days || 730))
-    db.prepare(
-      `INSERT INTO memberships (user_id, status, start_at, expires_at, source, updated_at)
-       VALUES (?, 'active', ?, ?, 'admin_grant', ?)
-       ON CONFLICT(user_id) DO UPDATE SET
-         status = 'active', start_at = excluded.start_at, expires_at = excluded.expires_at,
-         source = 'admin_grant', updated_at = excluded.updated_at`
-    ).run(userId, start.toISOString(), end.toISOString(), now)
-  } else {
-    db.prepare(`UPDATE memberships SET status = 'expired', updated_at = ? WHERE user_id = ?`).run(now, userId)
-  }
-  res.json({
-    ok: true,
-    user: publicUser(target, membershipPublic(getMembership(userId))),
-  })
-})
-
+// Serverless export + local listen
 await ensureAdmin()
 
 export default app
 
-const isVercel = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME)
-const isMain =
-  process.argv[1] &&
-  (process.argv[1].endsWith('server/index.js') ||
-    process.argv[1].endsWith('server\\index.js') ||
-    process.argv[1].includes('server/index'))
-
-if (!isVercel && isMain) {
+if (!process.env.VERCEL) {
   app.listen(PORT, () => {
     console.log(`[cq-api] listening on http://127.0.0.1:${PORT}`)
   })
