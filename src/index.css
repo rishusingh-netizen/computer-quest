@@ -396,15 +396,70 @@ img {
   padding: 28px;
 }
 
+/* Homepage hero: realistic study scene + readable overlay */
+.home-hero {
+  position: relative;
+  overflow: hidden;
+  padding: 0;
+  min-height: 240px;
+  background-color: #1e1b4b;
+  /* Realistic study scene: student focused on laptop (Unsplash, free license) */
+  background-image: url('https://images.unsplash.com/photo-1513258496099-48168024aec0?auto=format&fit=crop&w=1920&q=80');
+  background-size: cover;
+  background-position: 70% 30%;
+  background-repeat: no-repeat;
+}
+
+.home-hero-overlay {
+  display: flex;
+  align-items: flex-end;
+  min-height: 240px;
+  padding: 28px 32px;
+  background: linear-gradient(
+    105deg,
+    rgba(15, 23, 42, 0.88) 0%,
+    rgba(30, 27, 75, 0.72) 42%,
+    rgba(15, 23, 42, 0.28) 100%
+  );
+}
+
+.home-hero-content {
+  max-width: 520px;
+}
+
+.home-hero-content h2,
 .welcome-card h2 {
   font-size: 1.5rem;
   font-weight: 700;
   margin-bottom: 6px;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
 }
 
+.home-hero-content p,
 .welcome-card p {
-  opacity: 0.9;
+  opacity: 0.95;
   font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.95);
+  line-height: 1.5;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.home-hero-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+  background: #fff !important;
+  color: #312e81 !important;
+  border: none !important;
+  font-weight: 600;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+}
+
+.home-hero-cta:hover {
+  background: #eef2ff !important;
+  color: #1e1b4b !important;
 }
 
 .stat-card {
@@ -568,6 +623,22 @@ img {
   .grid-3 {
     grid-template-columns: repeat(2, 1fr);
   }
+
+  .home-hero {
+    min-height: 220px;
+    background-position: 65% 28%;
+  }
+
+  .home-hero-overlay {
+    min-height: 220px;
+    padding: 24px;
+    background: linear-gradient(
+      160deg,
+      rgba(15, 23, 42, 0.9) 0%,
+      rgba(30, 27, 75, 0.75) 55%,
+      rgba(15, 23, 42, 0.45) 100%
+    );
+  }
 }
 
 @media (max-width: 600px) {
@@ -606,6 +677,29 @@ img {
 
   .welcome-card h2 {
     font-size: 1.25rem;
+  }
+
+  .home-hero {
+    min-height: 200px;
+    background-position: 60% 22%;
+  }
+
+  .home-hero-overlay {
+    min-height: 200px;
+    padding: 20px 18px;
+    background: linear-gradient(
+      180deg,
+      rgba(15, 23, 42, 0.82) 0%,
+      rgba(15, 23, 42, 0.88) 100%
+    );
+  }
+
+  .home-hero-content h2 {
+    font-size: 1.25rem;
+  }
+
+  .home-hero-content p {
+    font-size: 0.875rem;
   }
 }
 
