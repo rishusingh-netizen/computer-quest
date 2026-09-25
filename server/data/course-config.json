@@ -1,8 +1,8 @@
 {
   "id": 1,
-  "price_paise": 234500,
+  "price_paise": 245600,
   "duration_days": 730,
   "title": "Computer Quest",
   "completion_json": "{\"mode\":\"full_course\",\"requireAllLessonsFromLevels\":[1,2,3,4,5,6,7,8,9],\"minPracticeCount\":8,\"minRevisionCount\":10,\"minPassedTests\":9,\"minGamesPlayed\":2}",
-  "updated_at": "2026-09-25T10:07:22.680Z"
+  "updated_at": "2026-09-25T10:07:26.126Z"
 }
