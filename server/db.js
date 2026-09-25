@@ -121,14 +121,34 @@ function runRun(sql, params) {
   const s = sql.replace(/\s+/g, ' ').trim()
   if (s.startsWith('INSERT INTO users')) {
     const role = s.includes("'admin'") ? 'admin' : 'student'
-    data.users.push({
+    const row = {
       id: params[0],
       email: params[1],
       name: params[2],
       password_hash: params[3],
       role,
       created_at: params[4],
-    })
+    }
+    // Upsert by id (or email) so serverless rehydrate does not create duplicate rows
+    const byId = data.users.findIndex((u) => u.id === row.id)
+    if (byId >= 0) {
+      data.users[byId] = { ...data.users[byId], ...row }
+    } else {
+      const em = String(row.email || '').toLowerCase()
+      const byEmail = data.users.findIndex((u) => String(u.email || '').toLowerCase() === em)
+      if (byEmail >= 0) {
+        // Keep existing id so older tokens for this email still resolve via email lookup
+        data.users[byEmail] = {
+          ...data.users[byEmail],
+          email: row.email,
+          name: row.name,
+          password_hash: row.password_hash || data.users[byEmail].password_hash,
+          role: row.role,
+        }
+      } else {
+        data.users.push(row)
+      }
+    }
     writeAll(data)
     return { changes: 1 }
   }
