@@ -41,7 +41,10 @@ export default function Login() {
     <div className="card" style={{ maxWidth: 420, margin: '24px auto' }}>
       <h2 className="card-title">Log in</h2>
       <p className="text-sm text-muted mb-3">
-        Access your Computer Quest account. Owner: use your admin email (e.g. admin@computerquest.local).
+        Access your Computer Quest account. Owner/admin email:{' '}
+        <strong>admin@computerquest.local</strong> (or admin@computerquest.app). Password is the plain
+        value set in Vercel as <code>CQ_ADMIN_PASSWORD</code> (default if unset: the value documented in
+        the project .env.example).
       </p>
       <form onSubmit={onSubmit}>
         <label className="text-sm">Email</label>
