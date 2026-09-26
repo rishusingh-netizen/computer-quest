@@ -1,28 +1,13 @@
 /**
  * Production-ready durable course configuration store.
  *
- * Source of truth for the live course PRICE is the committed file
+ * Source of truth for live PRICING and PLANS is the committed file
  *   server/data/course-config.json
  * in the GitHub repo (public raw URL for reads; Contents API for writes).
  *
- * Why not only the JSON DB under /tmp?
- *   Vercel serverless instances are ephemeral. /tmp does not survive
- *   cold starts or scale-out. localStorage is browser-only and must never
- *   be the admin source of truth.
- *
- * READ priority:
- *  1. On Vercel / Lambda: GitHub raw first (cross-instance source of truth)
- *  2. Local or /tmp file (fast path / write-through cache)
- *  3. Packaged file shipped with the deployment
- *  4. null → caller may apply a one-time bootstrap (never a hard-coded live price)
- *
- * WRITE (admin save):
- *  1. Always write local/tmp (and packaged path when writable)
- *  2. If CQ_GITHUB_TOKEN (or GITHUB_TOKEN) is set, commit to the repo so
- *     every future cold start and every instance sees the new price
- *  3. Return persistedToGitHub so the admin UI can confirm permanence
- *
- * This module is independent of browser localStorage and of the users DB.
+ * Supports:
+ *  - Legacy single price (price_paise / duration_days) for backward compatibility
+ *  - Multiple enrollment plans (plans[]) — admin editable, never permanently fixed
  */
 
 import fs from 'fs'
@@ -45,7 +30,6 @@ function resolveLocalPath() {
   if (process.env.CQ_COURSE_CONFIG_PATH) {
     return path.resolve(process.env.CQ_COURSE_CONFIG_PATH)
   }
-  // Prefer package data dir locally; on Vercel keep a /tmp mirror for fast writes
   const packaged = path.join(__dirname, 'data', 'course-config.json')
   if (isServerless()) {
     return path.join('/tmp', 'computer-quest-data', 'course-config.json')
@@ -58,20 +42,146 @@ function packagedPath() {
 }
 
 function githubToken() {
-  // Trim in case the Vercel env value was pasted with whitespace/newlines
   const t = process.env.CQ_GITHUB_TOKEN || process.env.GITHUB_TOKEN || ''
   return String(t).trim()
+}
+
+/** Default plan definitions (structure + features). Prices are not permanent — admin sets any INR. */
+export function defaultPlans(seedPricePaise = 0) {
+  const fullPrice = Number.isFinite(Number(seedPricePaise)) ? Math.max(0, Math.round(Number(seedPricePaise))) : 0
+  return [
+    {
+      id: 'plan-6m',
+      name: '6 Months – Essential',
+      description:
+        'Core computer skills for beginners: Windows, typing, Word, basic Excel & PowerPoint, internet, email and cyber safety with practice and tests.',
+      price_paise: 0,
+      duration_days: 182,
+      active: true,
+      sort_order: 1,
+      tier: 'essential',
+      features: [
+        'Important computer basics',
+        'Windows / File Management',
+        'Keyboard + Typing',
+        'MS Word',
+        'Basic Excel',
+        'Basic PowerPoint',
+        'Internet & Email',
+        'Basic Cyber Safety',
+        'Basic tests + practice',
+      ],
+    },
+    {
+      id: 'plan-1y',
+      name: '1 Year – Complete',
+      description:
+        'Everything in Essential plus advanced Office skills, more projects, practice, tests, revision, games, Quest Helper, progress tracking and certificate.',
+      price_paise: 0,
+      duration_days: 365,
+      active: true,
+      sort_order: 2,
+      tier: 'complete',
+      features: [
+        'Everything in 6 Months – Essential',
+        'Advanced Word',
+        'Advanced Excel',
+        'Advanced PowerPoint',
+        'More practical projects',
+        'More practice, tests, revision and games',
+        'Quest Helper',
+        'Progress + XP / Streak',
+        'Certificate',
+      ],
+    },
+    {
+      id: 'plan-2y',
+      name: '2 Years – Full Computer Quest',
+      description:
+        'Complete Level 1–9 curriculum with all Practice Labs, Game Zone, tests, revision, Quest Helper, projects, certificate and future course updates during access.',
+      price_paise: fullPrice,
+      duration_days: 730,
+      active: true,
+      sort_order: 3,
+      tier: 'full',
+      features: [
+        'Complete Level 1–9 curriculum',
+        'All Practice Labs',
+        'Game Zone',
+        'Tests',
+        'Revision',
+        'Quest Helper',
+        'Projects',
+        'Certificate',
+        'Future course content during access (when released)',
+      ],
+    },
+  ]
+}
+
+function normalizePlan(p, index = 0) {
+  if (!p || typeof p !== 'object') return null
+  const id = String(p.id || `plan-${index + 1}`).trim()
+  if (!id) return null
+  let pricePaise = Number(p.price_paise ?? p.pricePaise)
+  if (!Number.isFinite(pricePaise) && p.priceInr != null) {
+    pricePaise = Math.round(Number(p.priceInr) * 100)
+  }
+  if (!Number.isFinite(pricePaise)) pricePaise = 0
+  const durationDays = Number(p.duration_days ?? p.durationDays ?? 365)
+  const features = Array.isArray(p.features)
+    ? p.features.map((f) => String(f).trim()).filter(Boolean)
+    : []
+  return {
+    id,
+    name: String(p.name || id).trim() || id,
+    description: String(p.description || '').trim(),
+    price_paise: Number.isFinite(pricePaise) && pricePaise >= 0 ? Math.round(pricePaise) : 0,
+    duration_days: Number.isFinite(durationDays) && durationDays > 0 ? Math.round(durationDays) : 365,
+    active: p.active !== false && p.active !== 'false' && p.active !== 0,
+    sort_order: Number.isFinite(Number(p.sort_order ?? p.sortOrder))
+      ? Math.round(Number(p.sort_order ?? p.sortOrder))
+      : index + 1,
+    tier: String(p.tier || 'full').trim() || 'full',
+    features,
+  }
+}
+
+function normalizePlans(rawPlans, seedPricePaise = 0) {
+  if (Array.isArray(rawPlans) && rawPlans.length > 0) {
+    const out = rawPlans.map((p, i) => normalizePlan(p, i)).filter(Boolean)
+    if (out.length) {
+      out.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
+      return out
+    }
+  }
+  return defaultPlans(seedPricePaise)
 }
 
 function normalize(cfg) {
   if (!cfg || typeof cfg !== 'object') return null
   const pricePaise = Number(cfg.price_paise ?? cfg.pricePaise)
-  if (!Number.isFinite(pricePaise) || pricePaise < 0) return null
+  if (!Number.isFinite(pricePaise) || pricePaise < 0) {
+    // Allow 0 and missing when plans carry prices
+    if (!Array.isArray(cfg.plans) || !cfg.plans.length) return null
+  }
+  const safePaise = Number.isFinite(pricePaise) && pricePaise >= 0 ? Math.round(pricePaise) : 0
   const durationDays = Number(cfg.duration_days ?? cfg.durationDays ?? 730)
+  const plans = normalizePlans(cfg.plans, safePaise)
+  // Legacy primary price: prefer active plan-2y, else first active, else safePaise
+  const primary =
+    plans.find((p) => p.id === 'plan-2y' && p.active) ||
+    plans.find((p) => p.active) ||
+    plans[0]
   return {
     id: 1,
-    price_paise: Math.round(pricePaise),
-    duration_days: Number.isFinite(durationDays) && durationDays > 0 ? Math.round(durationDays) : 730,
+    price_paise: primary ? primary.price_paise : safePaise,
+    duration_days:
+      primary && primary.duration_days
+        ? primary.duration_days
+        : Number.isFinite(durationDays) && durationDays > 0
+          ? Math.round(durationDays)
+          : 730,
     title: String(cfg.title || 'Computer Quest').trim() || 'Computer Quest',
     completion_json:
       typeof cfg.completion_json === 'string'
@@ -86,6 +196,7 @@ function normalize(cfg) {
               minGamesPlayed: 2,
             }
           ),
+    plans,
     updated_at: cfg.updated_at || cfg.updatedAt || new Date().toISOString(),
   }
 }
@@ -96,7 +207,6 @@ function ts(cfg) {
   return Number.isFinite(t) ? t : 0
 }
 
-/** Pick the config with the newest updated_at (prefer non-null). */
 function newest(a, b) {
   if (!a) return b
   if (!b) return a
@@ -109,7 +219,6 @@ function readLocalFile() {
     if (fs.existsSync(p)) {
       return normalize(JSON.parse(fs.readFileSync(p, 'utf8')))
     }
-    // Packaged path when running on Vercel (read-only copy from deploy)
     const packaged = packagedPath()
     if (packaged !== p && fs.existsSync(packaged)) {
       return normalize(JSON.parse(fs.readFileSync(packaged, 'utf8')))
@@ -125,7 +234,6 @@ function writeLocalFile(cfg) {
   const dir = path.dirname(p)
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
   fs.writeFileSync(p, JSON.stringify(cfg, null, 2))
-  // Best-effort: also update packaged path when writable (local dev)
   try {
     const packaged = packagedPath()
     if (packaged !== p) {
@@ -169,7 +277,7 @@ async function getGitHubFileSha(token) {
 async function writeToGitHub(cfg, token) {
   const sha = await getGitHubFileSha(token)
   const body = {
-    message: `chore: update course price to ₹${Math.round(cfg.price_paise / 100)} (${cfg.updated_at})`,
+    message: `chore: update course plans/pricing (${cfg.updated_at})`,
     content: Buffer.from(JSON.stringify(cfg, null, 2), 'utf8').toString('base64'),
     branch: BRANCH,
   }
@@ -192,41 +300,25 @@ async function writeToGitHub(cfg, token) {
   return true
 }
 
-/** In-process cache to avoid hitting GitHub on every request */
 let cache = { cfg: null, loadedAt: 0 }
-const CACHE_MS = 10_000 // redeploy: pick up CQ_GITHUB_TOKEN
+const CACHE_MS = 10_000
 
-/**
- * Load durable course config (never from localStorage / browser).
- * On serverless, GitHub raw is preferred so every instance agrees.
- */
 export async function loadCourseConfig() {
   const now = Date.now()
   if (cache.cfg && now - cache.loadedAt < CACHE_MS) return cache.cfg
 
   let local = readLocalFile()
-  let remote = null
-
-  // On Vercel always consult GitHub first so cold starts and scale-out
-  // share one permanent price. Locally, GitHub is still consulted and
-  // we keep the newest by updated_at.
-  remote = await readFromGitHubRaw()
+  let remote = await readFromGitHubRaw()
 
   let cfg
   if (isServerless()) {
-    // Production: GitHub is the permanent cross-instance source of truth.
-    // Prefer the newest updated_at so a just-committed price wins over a
-    // stale /tmp cache, and a warmer /tmp still loses to a newer commit.
     cfg = newest(remote, local) || remote || local
   } else {
-    // Local development: disk file is the working store (no token required).
-    // GitHub is only a fallback when the local file is missing.
     cfg = local || remote
   }
 
   if (cfg) {
     cache = { cfg, loadedAt: now }
-    // Warm local/tmp for subsequent reads in this instance
     try {
       writeLocalFile(cfg)
     } catch {
@@ -236,10 +328,6 @@ export async function loadCourseConfig() {
   return cfg
 }
 
-/**
- * Persist course config durably.
- * @returns {{ ok: boolean, config?: object, persistedToGitHub?: boolean, durable?: boolean, warning?: string, error?: string }}
- */
 export async function saveCourseConfig(partial) {
   const current = (await loadCourseConfig()) || {
     id: 1,
@@ -254,12 +342,19 @@ export async function saveCourseConfig(partial) {
       minPassedTests: 9,
       minGamesPlayed: 2,
     }),
+    plans: defaultPlans(0),
     updated_at: new Date().toISOString(),
+  }
+
+  let plans = current.plans
+  if (partial.plans != null) {
+    plans = normalizePlans(partial.plans, partial.price_paise ?? current.price_paise)
   }
 
   const next = normalize({
     ...current,
     ...partial,
+    plans,
     price_paise: partial.price_paise ?? current.price_paise,
     duration_days: partial.duration_days ?? current.duration_days,
     title: partial.title ?? current.title,
@@ -285,12 +380,11 @@ export async function saveCourseConfig(partial) {
       await writeToGitHub(next, token)
       persistedToGitHub = true
     } catch (e) {
-      // Local write succeeded; GitHub is required for cross-instance durability
       warning = e.message
     }
   } else if (isServerless()) {
     warning =
-      'CQ_GITHUB_TOKEN is not set. Price was saved on this instance only and may reset after a cold start. Add a fine-scoped GitHub token (Contents: Read & Write) in Vercel env for permanent production pricing.'
+      'CQ_GITHUB_TOKEN is not set. Config was saved on this instance only and may reset after a cold start. Add a fine-scoped GitHub token (Contents: Read & Write) in Vercel env for permanent production pricing.'
   }
 
   return {
@@ -306,9 +400,30 @@ export function clearCourseConfigCache() {
   cache = { cfg: null, loadedAt: 0 }
 }
 
+export function findPlan(cfg, planId) {
+  if (!cfg?.plans?.length) return null
+  const id = String(planId || '').trim()
+  if (!id) return null
+  return cfg.plans.find((p) => p.id === id) || null
+}
+
 export function courseConfigToPublic(cfg) {
   if (!cfg) return null
   const pricePaise = Number(cfg.price_paise) || 0
+  const plans = (cfg.plans || []).map((p) => ({
+    id: p.id,
+    name: p.name,
+    description: p.description,
+    pricePaise: p.price_paise,
+    priceInr: Math.round((p.price_paise || 0) / 100),
+    durationDays: p.duration_days,
+    durationMonths: Math.max(1, Math.round((p.duration_days || 30) / 30)),
+    durationYears: Math.max(1, Math.round((p.duration_days || 365) / 365)),
+    active: !!p.active,
+    sortOrder: p.sort_order,
+    tier: p.tier,
+    features: p.features || [],
+  }))
   return {
     title: cfg.title,
     name: cfg.title,
@@ -323,6 +438,7 @@ export function courseConfigToPublic(cfg) {
         return {}
       }
     })(),
+    plans,
     updatedAt: cfg.updated_at || null,
   }
 }
