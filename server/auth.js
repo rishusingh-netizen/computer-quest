@@ -26,12 +26,6 @@ export function verifyToken(token) {
   }
 }
 
-/**
- * Resolve the session user for a verified JWT.
- * On Vercel the JSON DB under /tmp is per-instance. Login may create user id A on
- * instance 1; a later request can hit instance 2 with an empty DB. For valid admin
- * tokens we rehydrate the admin row from JWT claims so Admin → Courses saves work.
- */
 function resolveSessionUser(payload) {
   if (!payload?.sub) return null
 
@@ -44,7 +38,6 @@ function resolveSessionUser(payload) {
     if (user) return user
   }
 
-  // Rehydrate admin only — JWT already verified with server secret
   if (payload.role === 'admin' && email && ADMIN_EMAILS.has(email)) {
     const now = new Date().toISOString()
     const id = String(payload.sub)
@@ -52,9 +45,7 @@ function resolveSessionUser(payload) {
       db.prepare(
         `INSERT INTO users (id, email, name, password_hash, role, created_at) VALUES (?, ?, ?, ?, 'admin', ?)`
       ).run(id, email, 'Course Admin', '', now)
-    } catch {
-      // concurrent insert or existing — continue
-    }
+    } catch {}
     try {
       const start = new Date()
       const end = new Date(start)
@@ -133,10 +124,16 @@ export function membershipPublic(row) {
       row.user_id
     )
   }
+  const planId =
+    row.plan_id ||
+    (typeof row.source === 'string' && row.source.startsWith('purchase:')
+      ? row.source.slice('purchase:'.length)
+      : null)
   return {
     status,
     startAt: row.start_at,
     expiresAt: row.expires_at,
     source: row.source,
+    planId: planId || null,
   }
 }
