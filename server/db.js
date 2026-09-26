@@ -129,7 +129,6 @@ function runRun(sql, params) {
       role,
       created_at: params[4],
     }
-    // Upsert by id (or email) so serverless rehydrate does not create duplicate rows
     const byId = data.users.findIndex((u) => u.id === row.id)
     if (byId >= 0) {
       data.users[byId] = { ...data.users[byId], ...row }
@@ -137,7 +136,6 @@ function runRun(sql, params) {
       const em = String(row.email || '').toLowerCase()
       const byEmail = data.users.findIndex((u) => String(u.email || '').toLowerCase() === em)
       if (byEmail >= 0) {
-        // Keep existing id so older tokens for this email still resolve via email lookup
         data.users[byEmail] = {
           ...data.users[byEmail],
           email: row.email,
@@ -160,26 +158,42 @@ function runRun(sql, params) {
       expires_at: null,
       source: null,
       updated_at: params[1],
+      plan_id: null,
     })
     writeAll(data)
     return { changes: 1 }
   }
+  // Purchase / plan membership with optional plan_id (params may include plan_id)
+  // SQL shape from index.js:
+  //   INSERT ... VALUES (?, 'active', ?, ?, ?, ?, ?)
+  //   (?, start, end, source, updated, plan_id)
   if (s.includes('INSERT INTO memberships') && s.includes('ON CONFLICT')) {
+    let source = params[3]
+    let planId = null
+    let updatedAt = params[4]
+    if (params.length >= 6) {
+      source = params[3]
+      updatedAt = params[4]
+      planId = params[5] || null
+    } else if (params.length === 5) {
+      // legacy: source may be purchase:planId
+      if (String(source).startsWith('purchase:')) planId = String(source).slice('purchase:'.length)
+    }
     const next = {
       user_id: params[0],
       status: 'active',
       start_at: params[1],
       expires_at: params[2],
-      source: 'purchase',
-      updated_at: params[3],
+      source: source || 'purchase',
+      updated_at: updatedAt,
+      plan_id: planId,
     }
     const i = data.memberships.findIndex((m) => m.user_id === params[0])
-    if (i >= 0) data.memberships[i] = next
+    if (i >= 0) data.memberships[i] = { ...data.memberships[i], ...next }
     else data.memberships.push(next)
     writeAll(data)
     return { changes: 1 }
   }
-  // Admin bootstrap: VALUES (?, 'active', ?, ?, 'admin_grant', ?)
   if (s.includes('INSERT INTO memberships') && s.includes("'admin_grant'")) {
     const next = {
       user_id: params[0],
@@ -188,6 +202,7 @@ function runRun(sql, params) {
       expires_at: params[2],
       source: 'admin_grant',
       updated_at: params[3],
+      plan_id: null,
     }
     const i = data.memberships.findIndex((m) => m.user_id === params[0])
     if (i >= 0) data.memberships[i] = next
@@ -203,6 +218,7 @@ function runRun(sql, params) {
       expires_at: params[3],
       source: params[4],
       updated_at: params[5],
+      plan_id: params[6] || null,
     })
     writeAll(data)
     return { changes: 1 }
@@ -225,6 +241,7 @@ function runRun(sql, params) {
     return { changes: 1 }
   }
   if (s.startsWith('INSERT INTO orders')) {
+    // Supports both legacy (5 params after id) and plan_id (6th value)
     data.orders.push({
       id: params[0],
       user_id: params[1],
@@ -235,6 +252,7 @@ function runRun(sql, params) {
       provider_ref: null,
       created_at: params[3],
       updated_at: params[4],
+      plan_id: params[5] || null,
     })
     writeAll(data)
     return { changes: 1 }
@@ -318,9 +336,6 @@ function runRun(sql, params) {
 export function initDb() {
   const data = readAll()
   if (!data.course_config) {
-    // Placeholder only when durable courseConfigStore has never been written.
-    // Live price is owned by server/data/course-config.json (GitHub-backed).
-    // Do NOT hardcode a product price here — admin sets it via PATCH /api/admin/course.
     data.course_config = {
       id: 1,
       price_paise: 0,
