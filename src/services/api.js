@@ -1,43 +1,19 @@
 /**
- * API client for Computer Quest backend.
- * Token stored in sessionStorage (not localStorage progress keys).
- *
- * Production API (live): https://computer-quest.vercel.app
- * Paths are always /api/...
+ * API client — same-origin /api on Vercel; optional VITE_API_URL override for local split dev.
  */
 
-/** Live production API origin — real public HTTPS, not a placeholder */
-export const PRODUCTION_API_ORIGIN = 'https://computer-quest.vercel.app'
+const API_BASE = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '')
 
-function resolveApiBase() {
-  const env = import.meta.env.VITE_API_URL
-  if (env !== undefined && env !== null && String(env).trim().length > 0) {
-    return String(env).trim().replace(/\/$/, '')
-  }
-  // Local Vite dev → local Express
-  if (import.meta.env.DEV) return 'http://127.0.0.1:3001'
-  // Production: same-origin /api (works on computer-quest.vercel.app and custom domains)
-  if (typeof window !== 'undefined' && window.location?.origin) {
-    return window.location.origin
-  }
-  return PRODUCTION_API_ORIGIN
-}
-
-const API_BASE = resolveApiBase()
-const TOKEN_KEY = 'cq_api_token'
-
-export function getToken() {
-  try {
-    return sessionStorage.getItem(TOKEN_KEY)
-  } catch {
-    return null
-  }
-}
+let authToken = null
+try {
+  authToken = localStorage.getItem('cq_token') || null
+} catch {}
 
 export function setToken(token) {
+  authToken = token
   try {
-    if (token) sessionStorage.setItem(TOKEN_KEY, token)
-    else sessionStorage.removeItem(TOKEN_KEY)
+    if (token) localStorage.setItem('cq_token', token)
+    else localStorage.removeItem('cq_token')
   } catch {}
 }
 
@@ -45,21 +21,29 @@ export function clearToken() {
   setToken(null)
 }
 
+export function getToken() {
+  return authToken
+}
+
 async function request(path, options = {}) {
-  const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) }
-  const token = getToken()
-  if (token) headers.Authorization = `Bearer ${token}`
-  let res
+  const headers = {
+    Accept: 'application/json',
+    ...(options.headers || {}),
+  }
+  if (options.body && !headers['Content-Type']) {
+    headers['Content-Type'] = 'application/json'
+  }
+  if (authToken) headers.Authorization = `Bearer ${authToken}`
   try {
-    res = await fetch(`${API_BASE}${path}`, { ...options, headers })
-  } catch {
-    return { ok: false, error: 'Cannot reach API server', offline: true }
+    const res = await fetch(`${API_BASE}${path}`, { ...options, headers })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      return { ok: false, error: data.error || res.statusText || 'Request failed', status: res.status, ...data }
+    }
+    return data
+  } catch (e) {
+    return { ok: false, offline: true, error: e.message || 'Network error' }
   }
-  const data = await res.json().catch(() => ({}))
-  if (!res.ok) {
-    return { ok: false, error: data.error || res.statusText, status: res.status, ...data }
-  }
-  return data
 }
 
 export const api = {
@@ -73,7 +57,11 @@ export const api = {
     request('/api/progress', { method: 'PUT', body: JSON.stringify({ progress }) }),
   migrateProgress: (progress) =>
     request('/api/progress/migrate', { method: 'POST', body: JSON.stringify({ progress }) }),
-  createOrder: () => request('/api/payments/create-order', { method: 'POST', body: '{}' }),
+  createOrder: (body = {}) =>
+    request('/api/payments/create-order', {
+      method: 'POST',
+      body: JSON.stringify(body || {}),
+    }),
   confirmPayment: (orderId, mockResult) =>
     request('/api/payments/confirm', {
       method: 'POST',
