@@ -13,6 +13,7 @@ export function isApiOnline() {
 }
 
 export async function ensureAdminBootstrap() {
+  // Server bootstraps admin; probe health
   const health = await api.health()
   apiOnline = !health.offline
   return apiOnline
@@ -24,6 +25,7 @@ export async function signUp({ name, email, password }) {
   if (!res.ok) return { ok: false, error: res.error || 'Signup failed' }
   setToken(res.token)
   lastUser = res.user
+  // migrate local progress if any
   try {
     const raw = localStorage.getItem('cq_progress')
     if (raw) {
@@ -79,7 +81,7 @@ export async function restoreSession() {
 }
 
 export function refreshMembershipStatus(user) {
-  return user
+  return user // membership already server-evaluated
 }
 
 export function hasActiveAccess(user) {
