@@ -1,8 +1,73 @@
 {
   "id": 1,
-  "price_paise": 69900,
-  "duration_days": 365,
+  "price_paise": 0,
+  "duration_days": 730,
   "title": "Computer Quest",
   "completion_json": "{\"mode\":\"full_course\",\"requireAllLessonsFromLevels\":[1,2,3,4,5,6,7,8,9],\"minPracticeCount\":8,\"minRevisionCount\":10,\"minPassedTests\":9,\"minGamesPlayed\":2}",
-  "updated_at": "2026-09-25T10:11:49.678Z"
+  "plans": [
+    {
+      "id": "plan-6m",
+      "name": "6 Months – Essential",
+      "description": "Core computer skills for beginners: Windows, typing, Word, basic Excel & PowerPoint, internet, email and cyber safety with practice and tests.",
+      "price_paise": 0,
+      "duration_days": 182,
+      "active": true,
+      "sort_order": 1,
+      "tier": "essential",
+      "features": [
+        "Important computer basics",
+        "Windows / File Management",
+        "Keyboard + Typing",
+        "MS Word",
+        "Basic Excel",
+        "Basic PowerPoint",
+        "Internet & Email",
+        "Basic Cyber Safety",
+        "Basic tests + practice"
+      ]
+    },
+    {
+      "id": "plan-1y",
+      "name": "1 Year – Complete",
+      "description": "Everything in Essential plus advanced Office skills, more projects, practice, tests, revision, games, Quest Helper, progress tracking and certificate.",
+      "price_paise": 0,
+      "duration_days": 365,
+      "active": true,
+      "sort_order": 2,
+      "tier": "complete",
+      "features": [
+        "Everything in 6 Months – Essential",
+        "Advanced Word",
+        "Advanced Excel",
+        "Advanced PowerPoint",
+        "More practical projects",
+        "More practice, tests, revision and games",
+        "Quest Helper",
+        "Progress + XP / Streak",
+        "Certificate"
+      ]
+    },
+    {
+      "id": "plan-2y",
+      "name": "2 Years – Full Computer Quest",
+      "description": "Complete Level 1–9 curriculum with all Practice Labs, Game Zone, tests, revision, Quest Helper, projects, certificate and future course updates during access.",
+      "price_paise": 0,
+      "duration_days": 730,
+      "active": true,
+      "sort_order": 3,
+      "tier": "full",
+      "features": [
+        "Complete Level 1–9 curriculum",
+        "All Practice Labs",
+        "Game Zone",
+        "Tests",
+        "Revision",
+        "Quest Helper",
+        "Projects",
+        "Certificate",
+        "Future course content during access (when released)"
+      ]
+    }
+  ],
+  "updated_at": "2026-09-26T14:40:00.000Z"
 }
