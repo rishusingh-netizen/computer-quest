@@ -1,6 +1,9 @@
 /**
  * API client for Computer Quest backend.
- * Token stored in sessionStorage (not localStorage progress keys).
+ *
+ * Auth token: JWT only (never password). Stored in localStorage so the session
+ * survives tab close and browser restart. Server JWT expiry is 14 days
+ * (see server/auth.js JWT_DAYS). Logout always clears the token.
  *
  * Production API (live): https://computer-quest.vercel.app
  * Paths are always /api/...
@@ -26,9 +29,25 @@ function resolveApiBase() {
 const API_BASE = resolveApiBase()
 const TOKEN_KEY = 'cq_api_token'
 
+/**
+ * Read JWT from durable storage (localStorage).
+ * One-time migrate: if an older tab still has the token only in sessionStorage,
+ * copy it to localStorage so closing the browser does not drop the session.
+ */
 export function getToken() {
   try {
-    return sessionStorage.getItem(TOKEN_KEY)
+    let token = localStorage.getItem(TOKEN_KEY)
+    if (token) return token
+    // Migrate from sessionStorage (previous implementation)
+    const legacy = sessionStorage.getItem(TOKEN_KEY)
+    if (legacy) {
+      localStorage.setItem(TOKEN_KEY, legacy)
+      try {
+        sessionStorage.removeItem(TOKEN_KEY)
+      } catch {}
+      return legacy
+    }
+    return null
   } catch {
     return null
   }
@@ -36,8 +55,18 @@ export function getToken() {
 
 export function setToken(token) {
   try {
-    if (token) sessionStorage.setItem(TOKEN_KEY, token)
-    else sessionStorage.removeItem(TOKEN_KEY)
+    if (token) {
+      localStorage.setItem(TOKEN_KEY, token)
+      // Clear any leftover sessionStorage copy
+      try {
+        sessionStorage.removeItem(TOKEN_KEY)
+      } catch {}
+    } else {
+      localStorage.removeItem(TOKEN_KEY)
+      try {
+        sessionStorage.removeItem(TOKEN_KEY)
+      } catch {}
+    }
   } catch {}
 }
 
