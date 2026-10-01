@@ -15,7 +15,7 @@ export default function AdminSettings() {
         <h3 className="font-semibold mb-2">Production security model</h3>
         <ul className="text-sm" style={{ paddingLeft: 18 }}>
           <li>Passwords hashed with bcrypt on the API server</li>
-          <li>JWT sessions (Bearer token in sessionStorage)</li>
+          <li>JWT sessions (Bearer token in localStorage; 14-day server expiry; cleared on Logout)</li>
           <li>Membership, orders, and certificates only change via server routes</li>
           <li>Admin routes require role=admin in the database</li>
           <li>Payment success must be confirmed by the server (mock adapter until Stripe/Razorpay webhooks)</li>
