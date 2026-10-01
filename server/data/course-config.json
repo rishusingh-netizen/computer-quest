@@ -1,6 +1,6 @@
 {
   "id": 1,
-  "price_paise": 0,
+  "price_paise": 79900,
   "duration_days": 730,
   "title": "Computer Quest",
   "completion_json": "{\"mode\":\"full_course\",\"requireAllLessonsFromLevels\":[1,2,3,4,5,6,7,8,9],\"minPracticeCount\":8,\"minRevisionCount\":10,\"minPassedTests\":9,\"minGamesPlayed\":2}",
@@ -9,7 +9,7 @@
       "id": "plan-6m",
       "name": "6 Months – Essential",
       "description": "Core computer skills for beginners: Windows, typing, Word, basic Excel & PowerPoint, internet, email and cyber safety with practice and tests.",
-      "price_paise": 0,
+      "price_paise": 19900,
       "duration_days": 182,
       "active": true,
       "sort_order": 1,
@@ -30,7 +30,7 @@
       "id": "plan-1y",
       "name": "1 Year – Complete",
       "description": "Everything in Essential plus advanced Office skills, more projects, practice, tests, revision, games, Quest Helper, progress tracking and certificate.",
-      "price_paise": 0,
+      "price_paise": 39900,
       "duration_days": 365,
       "active": true,
       "sort_order": 2,
@@ -51,7 +51,7 @@
       "id": "plan-2y",
       "name": "2 Years – Full Computer Quest",
       "description": "Complete Level 1–9 curriculum with all Practice Labs, Game Zone, tests, revision, Quest Helper, projects, certificate and future course updates during access.",
-      "price_paise": 0,
+      "price_paise": 79900,
       "duration_days": 730,
       "active": true,
       "sort_order": 3,
@@ -69,5 +69,5 @@
       ]
     }
   ],
-  "updated_at": "2026-10-01T16:09:49.857Z"
+  "updated_at": "2026-10-01T16:46:26.032Z"
 }
