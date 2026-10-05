@@ -12,7 +12,12 @@ const ADMIN_EMAILS = new Set(
 
 export function signToken(user) {
   return jwt.sign(
-    { sub: user.id, role: user.role, email: user.email },
+    {
+      sub: user.id,
+      role: user.role || 'student',
+      email: user.email,
+      name: user.name || '',
+    },
     JWT_SECRET,
     { expiresIn: `${JWT_DAYS}d` }
   )
@@ -28,9 +33,9 @@ export function verifyToken(token) {
 
 /**
  * Resolve the session user for a verified JWT.
- * On Vercel the JSON DB under /tmp is per-instance. Login may create user id A on
- * instance 1; a later request can hit instance 2 with an empty DB. For valid admin
- * tokens we rehydrate the admin row from JWT claims so Admin → Courses saves work.
+ * On Vercel the JSON DB under /tmp is per-instance. Login/signup may create user id A on
+ * instance 1; a later request can hit instance 2 with an empty DB. For any valid JWT we
+ * rehydrate the user row from claims so student and admin sessions survive cold starts.
  */
 function resolveSessionUser(payload) {
   if (!payload?.sub) return null
@@ -44,17 +49,24 @@ function resolveSessionUser(payload) {
     if (user) return user
   }
 
-  // Rehydrate admin only — JWT already verified with server secret
-  if (payload.role === 'admin' && email && ADMIN_EMAILS.has(email)) {
-    const now = new Date().toISOString()
-    const id = String(payload.sub)
-    try {
-      db.prepare(
-        `INSERT INTO users (id, email, name, password_hash, role, created_at) VALUES (?, ?, ?, ?, 'admin', ?)`
-      ).run(id, email, 'Course Admin', '', now)
-    } catch {
-      // concurrent insert or existing — continue
-    }
+  // JWT already verified with server secret — rehydrate missing row on this instance
+  if (!email) return null
+  const now = new Date().toISOString()
+  const id = String(payload.sub)
+  const role = payload.role === 'admin' && ADMIN_EMAILS.has(email) ? 'admin' : 'student'
+  const name =
+    (payload.name && String(payload.name).trim()) ||
+    (role === 'admin' ? 'Course Admin' : email.split('@')[0] || 'Student')
+
+  try {
+    db.prepare(
+      `INSERT INTO users (id, email, name, password_hash, role, created_at) VALUES (?, ?, ?, ?, ?, ?)`
+    ).run(id, email, name, '', role, now)
+  } catch {
+    // concurrent insert or existing — continue
+  }
+
+  if (role === 'admin') {
     try {
       const start = new Date()
       const end = new Date(start)
@@ -64,20 +76,20 @@ function resolveSessionUser(payload) {
          VALUES (?, 'active', ?, ?, 'admin_grant', ?)`
       ).run(id, start.toISOString(), end.toISOString(), now)
     } catch {}
-    user =
-      db.prepare('SELECT id, email, name, role, created_at FROM users WHERE id = ?').get(id) ||
-      db.prepare('SELECT id, email, name, role, created_at FROM users WHERE email = ?').get(email)
-    if (user) return user
-    return {
-      id,
-      email,
-      name: 'Course Admin',
-      role: 'admin',
-      created_at: now,
-    }
   }
 
-  return null
+  user =
+    db.prepare('SELECT id, email, name, role, created_at FROM users WHERE id = ?').get(id) ||
+    db.prepare('SELECT id, email, name, role, created_at FROM users WHERE email = ?').get(email)
+  if (user) return user
+
+  return {
+    id,
+    email,
+    name,
+    role,
+    created_at: now,
+  }
 }
 
 export function authMiddleware(req, res, next) {
