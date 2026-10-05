@@ -23,9 +23,11 @@ import { useAuth } from '../context/AuthContext'
 import { COURSE } from '../config/course'
 
 function findNextLesson(completedLessons) {
+  // Only offer lessons that actually have full content (Levels 1–3 live).
   for (const lvl of LEVELS) {
+    if (lvl.available === false) continue
     for (const lesson of lvl.lessons) {
-      if (!completedLessons.includes(lesson.id)) {
+      if (!completedLessons.includes(lesson.id) && hasFullLesson(lesson.id)) {
         return { lesson, level: lvl }
       }
     }
@@ -40,7 +42,6 @@ function lessonStatus(lessonId, completedLessons, prevLessonId) {
   return 'not_started'
 }
 
-/** Collect real activity dates from progress (no invented days). */
 function collectActivityDates(progress) {
   const days = new Set()
   if (progress.lastActiveDate) days.add(String(progress.lastActiveDate).slice(0, 10))
@@ -102,9 +103,6 @@ function WeeklyActivity({ progress }) {
             <span className="weekly-dot" aria-hidden="true">
               {c.active ? '✓' : '•'}
             </span>
-            <span className="sr-only">
-              {c.iso}: {c.active ? 'active' : 'no activity recorded'}
-            </span>
           </div>
         ))}
       </div>
@@ -118,15 +116,9 @@ function WeeklyActivity({ progress }) {
 }
 
 function StatusBadge({ status }) {
-  if (status === 'completed') {
-    return <span className="badge badge-success">Completed</span>
-  }
-  if (status === 'locked') {
-    return <span className="badge learn-badge-locked">Locked</span>
-  }
-  if (status === 'in_progress') {
-    return <span className="badge badge-warning">In Progress</span>
-  }
+  if (status === 'completed') return <span className="badge badge-success">Completed</span>
+  if (status === 'locked') return <span className="badge learn-badge-locked">Locked</span>
+  if (status === 'in_progress') return <span className="badge badge-warning">In Progress</span>
   return <span className="badge learn-badge-idle">Not Started</span>
 }
 
@@ -134,7 +126,6 @@ export default function Learn() {
   const { lessonId } = useParams()
   const progress = useProgress()
   const {
-    isLessonCompleted,
     completedLessons,
     xp,
     level,
@@ -175,8 +166,9 @@ export default function Learn() {
           </div>
           <h2>Lesson coming soon</h2>
           <p>
-            Full interactive content for this lesson will be added in a later phase. Levels 1–3
-            (Basics, Typing, Microsoft Office) are fully available now.
+            Full interactive content for this lesson is not available yet. Levels 1–3
+            (Computer Basics, Typing + Keyboard, Microsoft Office) are live now. Levels 4–9
+            are listed as a roadmap and will unlock when content is ready.
           </p>
           <Link to="/learn" className="btn btn-primary">
             Back to Learn
@@ -187,7 +179,7 @@ export default function Learn() {
   }
 
   const next = findNextLesson(completedLessons)
-  const allDone = lessonsCompletedCount >= getTotalLessons()
+  const allDone = !next && lessonsCompletedCount > 0
   const continueLesson = next?.lesson
   const continueLevel = next?.level
   const fullContinue = continueLesson ? getLessonById(continueLesson.id) : null
@@ -202,7 +194,7 @@ export default function Learn() {
         <div>
           <h2 className="learn-hello">Welcome back, {firstName}!</h2>
           <p className="text-muted text-sm mt-1">
-            Pick up where you left off — or explore a new level.
+            Levels 1–3 are live. Levels 4–9 are on the roadmap (Coming soon).
           </p>
         </div>
         <div className="learn-stat-row">
@@ -237,13 +229,13 @@ export default function Learn() {
         <div className="learn-continue-body">
           <div>
             <p className="text-sm text-muted mb-1">
-              {allDone ? 'Course complete' : lessonsCompletedCount === 0 ? 'Get started' : 'Continue learning'}
+              {allDone ? 'Live levels complete' : lessonsCompletedCount === 0 ? 'Get started' : 'Continue learning'}
             </p>
             {allDone ? (
               <>
-                <h3 className="card-title">You finished every lesson</h3>
+                <h3 className="card-title">You finished all live lessons</h3>
                 <p className="text-sm text-muted mt-1">
-                  Great work. Review weak topics, take tests, or explore Practice Lab and Game Zone.
+                  Practice Lab, Game Zone, tests and revision are still available. Levels 4–9 will unlock when published.
                 </p>
               </>
             ) : (
@@ -263,8 +255,8 @@ export default function Learn() {
           </div>
           <div className="learn-continue-actions">
             {allDone ? (
-              <Link to="/completion" className="btn btn-primary">
-                View completion <ArrowRight size={16} />
+              <Link to="/practice" className="btn btn-primary">
+                Practice Lab <ArrowRight size={16} />
               </Link>
             ) : continueLesson ? (
               <Link to={`/learn/${continueLesson.id}`} className="btn btn-primary">
@@ -324,13 +316,7 @@ export default function Learn() {
               </strong>
             </li>
           </ul>
-          {lessonsCompletedCount === 0 && (
-            <p className="text-sm text-muted mt-2">
-              No progress yet — start with Level 1 to earn your first XP.
-            </p>
-          )}
         </div>
-
         <WeeklyActivity progress={progress} />
       </div>
 
@@ -368,7 +354,7 @@ export default function Learn() {
       <div className="mb-2">
         <h3 className="card-title mb-1">Course structure</h3>
         <p className="text-sm text-muted mb-3">
-          {COURSE.name} · {LEVELS.length} levels · {getTotalLessons()} lessons
+          {COURSE.name} · {LEVELS.length} levels · {getTotalLessons()} lessons (Levels 1–3 live)
         </p>
       </div>
 
@@ -377,7 +363,7 @@ export default function Learn() {
           const done = lvl.lessons.filter((l) => completedLessons.includes(l.id)).length
           const total = lvl.lessons.length
           const pct = total ? Math.round((done / total) * 100) : 0
-          const hasFullContent = lvl.lessons.some((l) => hasFullLesson(l.id))
+          const hasFullContent = lvl.available !== false && lvl.lessons.some((l) => hasFullLesson(l.id))
 
           return (
             <div key={lvl.id} className="card learn-level-card">
@@ -393,13 +379,22 @@ export default function Learn() {
                   <div>
                     <h4 className="font-semibold">
                       Level {lvl.id}: {lvl.title}
-                      {hasFullContent && (
+                      {hasFullContent ? (
                         <span className="badge badge-success" style={{ marginLeft: 8, fontSize: 10 }}>
-                          Interactive
+                          Live
+                        </span>
+                      ) : (
+                        <span className="badge badge-warning" style={{ marginLeft: 8, fontSize: 10 }}>
+                          Coming soon
                         </span>
                       )}
                     </h4>
                     <p className="text-sm text-muted">{lvl.description}</p>
+                    {!hasFullContent && (
+                      <p className="text-sm text-muted mt-1">
+                        Structure only — interactive lessons not released yet.
+                      </p>
+                    )}
                   </div>
                 </div>
                 <span className="badge badge-primary">
@@ -417,35 +412,51 @@ export default function Learn() {
                   const status = lessonStatus(lesson.id, completedLessons, prevId)
                   const doneLesson = status === 'completed'
                   const full = hasFullLesson(lesson.id)
+                  const RowTag = full ? Link : 'div'
+                  const rowProps = full
+                    ? {
+                        to: `/learn/${lesson.id}`,
+                        className: `learn-lesson-row ${doneLesson ? 'done' : ''} ${status === 'locked' ? 'locked' : ''}`,
+                      }
+                    : {
+                        className: 'learn-lesson-row locked',
+                        style: { cursor: 'default', opacity: 0.85 },
+                      }
 
                   return (
-                    <Link
-                      key={lesson.id}
-                      to={`/learn/${lesson.id}`}
-                      className={`learn-lesson-row ${doneLesson ? 'done' : ''} ${status === 'locked' ? 'locked' : ''}`}
-                    >
+                    <RowTag key={lesson.id} {...rowProps}>
                       <div className="flex items-center gap-2">
                         {doneLesson ? (
                           <CheckCircle size={16} color="#10b981" aria-hidden="true" />
+                        ) : !full ? (
+                          <Lock size={16} color="#94a3b8" aria-hidden="true" />
                         ) : status === 'locked' ? (
                           <Lock size={16} color="#94a3b8" aria-hidden="true" />
                         ) : (
                           <BookOpen size={16} color="#64748b" aria-hidden="true" />
                         )}
                         <span className="text-sm font-semibold">{lesson.title}</span>
-                        {full && (
+                        {full ? (
                           <span className="badge badge-success" style={{ fontSize: 10 }}>
-                            Full
+                            Live
+                          </span>
+                        ) : (
+                          <span className="badge badge-warning" style={{ fontSize: 10 }}>
+                            Coming soon
                           </span>
                         )}
                       </div>
                       <div className="learn-lesson-meta">
-                        <StatusBadge status={status} />
+                        {full ? (
+                          <StatusBadge status={status} />
+                        ) : (
+                          <span className="badge badge-muted">Roadmap</span>
+                        )}
                         <span className="text-sm text-muted">{lesson.duration}</span>
                         <span className="text-sm text-muted">+{lesson.xp} XP</span>
-                        <ChevronRight size={16} aria-hidden="true" />
+                        {full && <ChevronRight size={16} aria-hidden="true" />}
                       </div>
-                    </Link>
+                    </RowTag>
                   )
                 })}
               </div>
