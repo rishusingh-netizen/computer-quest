@@ -1,6 +1,7 @@
 /**
- * Computer Quest – Curriculum levels (data-driven)
- * Phase 0: structure + Level 1 sample. Full content in later phases.
+ * Computer Quest – Curriculum levels (data-driven).
+ * Levels 1–3 are live (full lesson content). Levels 4–9 are visible roadmap only
+ * (available: false) until full interactive lessons ship.
  */
 
 export const LEVELS = [
@@ -10,6 +11,7 @@ export const LEVELS = [
     description: 'What a computer is, hardware, software, Windows basics, files & folders.',
     icon: 'Monitor',
     color: '#4f46e5',
+    available: true,
     lessons: [
       { id: 'l1-1', title: 'What is a Computer?', duration: '8 min', xp: 20 },
       { id: 'l1-2', title: 'Hardware and Software', duration: '10 min', xp: 25 },
@@ -30,6 +32,7 @@ export const LEVELS = [
     description: 'English & Hindi typing, touch typing, shortcuts, speed improvement.',
     icon: 'Keyboard',
     color: '#0ea5e9',
+    available: true,
     lessons: [
       { id: 'l2-1', title: 'English Typing Basics', duration: '10 min', xp: 25 },
       { id: 'l2-2', title: 'Hindi Typing', duration: '12 min', xp: 30 },
@@ -44,6 +47,7 @@ export const LEVELS = [
     description: 'MS Word, Excel and PowerPoint – from basics to professional use.',
     icon: 'FileText',
     color: '#10b981',
+    available: true,
     lessons: [
       { id: 'l3-1', title: 'MS Word – Documents & Formatting', duration: '15 min', xp: 35 },
       { id: 'l3-2', title: 'MS Word – Tables, Images & Resume', duration: '15 min', xp: 35 },
@@ -60,6 +64,7 @@ export const LEVELS = [
     description: 'How the internet works, browsers, Gmail, Google Drive & Docs.',
     icon: 'Globe',
     color: '#f59e0b',
+    available: false,
     lessons: [
       { id: 'l4-1', title: 'How Internet Works', duration: '10 min', xp: 25 },
       { id: 'l4-2', title: 'Browsers & Google Search', duration: '10 min', xp: 25 },
@@ -74,6 +79,7 @@ export const LEVELS = [
     description: 'Passwords, 2FA, phishing, malware, antivirus and privacy.',
     icon: 'Shield',
     color: '#ef4444',
+    available: false,
     lessons: [
       { id: 'l5-1', title: 'Strong Passwords & 2FA', duration: '10 min', xp: 25 },
       { id: 'l5-2', title: 'Phishing & Scam Messages', duration: '12 min', xp: 30 },
@@ -88,6 +94,7 @@ export const LEVELS = [
     description: 'Canva, Photoshop basics, photo/video editing, social creatives.',
     icon: 'Palette',
     color: '#8b5cf6',
+    available: false,
     lessons: [
       { id: 'l6-1', title: 'Canva Basics', duration: '12 min', xp: 30 },
       { id: 'l6-2', title: 'Photoshop Basics', duration: '15 min', xp: 35 },
@@ -102,6 +109,7 @@ export const LEVELS = [
     description: 'ChatGPT, Gemini, AI image/video, prompt writing, productivity.',
     icon: 'Sparkles',
     color: '#ec4899',
+    available: false,
     lessons: [
       { id: 'l7-1', title: 'What is AI?', duration: '8 min', xp: 20 },
       { id: 'l7-2', title: 'ChatGPT & Gemini', duration: '12 min', xp: 30 },
@@ -116,6 +124,7 @@ export const LEVELS = [
     description: 'HTML, CSS, JavaScript, Python – variables, conditions, loops, functions.',
     icon: 'Code',
     color: '#06b6d4',
+    available: false,
     lessons: [
       { id: 'l8-1', title: 'What is Programming?', duration: '10 min', xp: 25 },
       { id: 'l8-2', title: 'HTML Basics', duration: '15 min', xp: 35 },
@@ -132,6 +141,7 @@ export const LEVELS = [
     description: 'Networking, databases, SQL, cloud, cybersecurity, Git, web development.',
     icon: 'Cpu',
     color: '#64748b',
+    available: false,
     lessons: [
       { id: 'l9-1', title: 'Computer Networking', duration: '15 min', xp: 35 },
       { id: 'l9-2', title: 'Databases & SQL', duration: '18 min', xp: 40 },
@@ -158,4 +168,9 @@ export function getLessonMeta(lessonId) {
 
 export function getTotalLessons() {
   return LEVELS.reduce((sum, l) => sum + l.lessons.length, 0)
+}
+
+/** Lessons that currently have full interactive content shipped. */
+export function getLiveLessonCount() {
+  return LEVELS.filter((l) => l.available !== false).reduce((sum, l) => sum + l.lessons.length, 0)
 }
