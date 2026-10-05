@@ -18,6 +18,7 @@ import {
   courseConfigToPublic,
   findPlan,
 } from './courseConfigStore.js'
+import { evaluateServerCompletion } from './completion.js'
 
 initDb()
 console.log(
@@ -170,7 +171,7 @@ app.get('/api/health', (_req, res) => {
     adminEmail: ADMIN_EMAIL,
     adminPasswordConfigured: Boolean(ADMIN_PASSWORD),
   })
-})
+}
 
 app.post('/api/auth/signup', async (req, res) => {
   try {
@@ -397,9 +398,11 @@ app.post('/api/payments/confirm', authMiddleware, async (req, res) => {
   })
 })
 
-app.get('/api/completion/status', authMiddleware, (req, res) => {
+app.get('/api/completion/status', authMiddleware, async (req, res) => {
   const progress = loadProgress(req.user.id)
-  res.json({ ok: true, progress })
+  const cfg = await getConfig()
+  const evaluation = evaluateServerCompletion(progress, cfg)
+  res.json({ ok: true, progress, evaluation })
 })
 
 app.post('/api/certificates/issue', authMiddleware, async (req, res) => {
@@ -407,6 +410,7 @@ app.post('/api/certificates/issue', authMiddleware, async (req, res) => {
   if (existing) {
     return res.json({
       ok: true,
+      alreadyIssued: true,
       certificate: {
         id: existing.id,
         studentName: existing.student_name,
@@ -417,10 +421,18 @@ app.post('/api/certificates/issue', authMiddleware, async (req, res) => {
     })
   }
   const cfgRow = await getConfig()
+  const progress = loadProgress(req.user.id)
+  const evaluation = evaluateServerCompletion(progress, cfgRow)
+  if (!evaluation.eligible) {
+    return res.status(403).json({
+      ok: false,
+      error: 'Complete all course requirements before requesting a certificate.',
+      evaluation,
+    })
+  }
   const id = certId()
   const completedAt = new Date().toISOString()
   const courseName = cfgRow.title || 'Computer Quest'
-  const evaluation = { snapshot: loadProgress(req.user.id) }
   db.prepare(
     `INSERT INTO certificates (id, user_id, student_name, course_name, completed_at, status, snapshot_json)
      VALUES (?, ?, ?, ?, ?, 'valid', ?)`
