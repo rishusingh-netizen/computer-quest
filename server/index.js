@@ -171,7 +171,7 @@ app.get('/api/health', (_req, res) => {
     adminEmail: ADMIN_EMAIL,
     adminPasswordConfigured: Boolean(ADMIN_PASSWORD),
   })
-}
+})
 
 app.post('/api/auth/signup', async (req, res) => {
   try {
@@ -556,14 +556,11 @@ app.patch('/api/admin/course', authMiddleware, adminMiddleware, async (req, res)
             ? Number(active.pricePaise)
             : active.price_paise != null
               ? Number(active.price_paise)
-              : active.priceInr != null
-                ? Math.round(Number(active.priceInr) * 100)
-                : null
-        if (pPaise != null && Number.isFinite(pPaise) && pPaise >= 0) {
-          payload.price_paise = Math.round(pPaise)
+              : nextPaise
+        if (Number.isFinite(pPaise)) payload.price_paise = Math.max(0, Math.round(pPaise))
+        if (active.duration_days != null && Number.isFinite(Number(active.duration_days))) {
+          payload.duration_days = Math.round(Number(active.duration_days))
         }
-        const pDays = Number(active.durationDays ?? active.duration_days)
-        if (Number.isFinite(pDays) && pDays > 0) payload.duration_days = Math.round(pDays)
       }
     }
 
