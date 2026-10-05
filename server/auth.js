@@ -10,17 +10,26 @@ const ADMIN_EMAILS = new Set(
   [ADMIN_EMAIL, 'admin@computerquest.local', 'admin@computerquest.app'].map((e) => e.toLowerCase())
 )
 
-export function signToken(user) {
-  return jwt.sign(
-    {
-      sub: user.id,
-      role: user.role || 'student',
-      email: user.email,
-      name: user.name || '',
-    },
-    JWT_SECRET,
-    { expiresIn: `${JWT_DAYS}d` }
-  )
+/**
+ * Sign JWT. Optional membership snapshot keeps paid access alive across
+ * Vercel serverless instances (ephemeral /tmp JSON DB).
+ */
+export function signToken(user, membershipRow = null) {
+  const payload = {
+    sub: user.id,
+    role: user.role || 'student',
+    email: user.email,
+    name: user.name || '',
+  }
+  const m = membershipRow || getMembership(user.id)
+  if (m && m.status === 'active') {
+    payload.mStatus = 'active'
+    payload.mStart = m.start_at || null
+    payload.mExp = m.expires_at || null
+    payload.mSource = m.source || null
+    payload.mPlanId = m.plan_id || null
+  }
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: `${JWT_DAYS}d` })
 }
 
 export function verifyToken(token) {
@@ -31,25 +40,65 @@ export function verifyToken(token) {
   }
 }
 
+function rehydrateMembershipFromJwt(userId, payload) {
+  if (payload.mStatus !== 'active') return
+  const now = new Date().toISOString()
+  try {
+    db.prepare(
+      `INSERT INTO memberships (user_id, status, start_at, expires_at, source, updated_at, plan_id)
+       VALUES (?, 'active', ?, ?, ?, ?, ?)
+       ON CONFLICT(user_id) DO UPDATE SET
+         status = 'active',
+         start_at = excluded.start_at,
+         expires_at = excluded.expires_at,
+         source = excluded.source,
+         updated_at = excluded.updated_at,
+         plan_id = excluded.plan_id`
+    ).run(
+      userId,
+      payload.mStart || now,
+      payload.mExp || null,
+      payload.mSource || 'jwt_rehydrate',
+      now,
+      payload.mPlanId || null
+    )
+  } catch {
+    try {
+      const existing = db.prepare('SELECT * FROM memberships WHERE user_id = ?').get(userId)
+      if (!existing) {
+        db.prepare(
+          `INSERT INTO memberships (user_id, status, start_at, expires_at, source, updated_at)
+           VALUES (?, 'active', ?, ?, ?, ?)`
+        ).run(userId, payload.mStart || now, payload.mExp || null, payload.mSource || 'jwt_rehydrate', now)
+      }
+    } catch {}
+  }
+}
+
 /**
  * Resolve the session user for a verified JWT.
  * On Vercel the JSON DB under /tmp is per-instance. Login/signup may create user id A on
  * instance 1; a later request can hit instance 2 with an empty DB. For any valid JWT we
- * rehydrate the user row from claims so student and admin sessions survive cold starts.
+ * rehydrate the user row (and membership snapshot) from claims.
  */
 function resolveSessionUser(payload) {
   if (!payload?.sub) return null
 
   let user = db.prepare('SELECT id, email, name, role, created_at FROM users WHERE id = ?').get(payload.sub)
-  if (user) return user
+  if (user) {
+    rehydrateMembershipFromJwt(user.id, payload)
+    return user
+  }
 
   const email = String(payload.email || '').trim().toLowerCase()
   if (email) {
     user = db.prepare('SELECT id, email, name, role, created_at FROM users WHERE email = ?').get(email)
-    if (user) return user
+    if (user) {
+      rehydrateMembershipFromJwt(user.id, payload)
+      return user
+    }
   }
 
-  // JWT already verified with server secret — rehydrate missing row on this instance
   if (!email) return null
   const now = new Date().toISOString()
   const id = String(payload.sub)
@@ -76,6 +125,8 @@ function resolveSessionUser(payload) {
          VALUES (?, 'active', ?, ?, 'admin_grant', ?)`
       ).run(id, start.toISOString(), end.toISOString(), now)
     } catch {}
+  } else {
+    rehydrateMembershipFromJwt(id, payload)
   }
 
   user =
