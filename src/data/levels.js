@@ -1,7 +1,8 @@
 /**
  * Computer Quest – Curriculum levels (data-driven).
- * Levels 1–3 are live (full lesson content). Levels 4–9 are visible roadmap only
+ * Levels 1–4 are live (full lesson content). Levels 5–9 are visible roadmap only
  * (available: false) until full interactive lessons ship.
+ * Level 4 (Internet & Email) shipped with full lessons.
  */
 
 export const LEVELS = [
@@ -64,7 +65,7 @@ export const LEVELS = [
     description: 'How the internet works, browsers, Gmail, Google Drive & Docs.',
     icon: 'Globe',
     color: '#f59e0b',
-    available: false,
+    available: true,
     lessons: [
       { id: 'l4-1', title: 'How Internet Works', duration: '10 min', xp: 25 },
       { id: 'l4-2', title: 'Browsers & Google Search', duration: '10 min', xp: 25 },
