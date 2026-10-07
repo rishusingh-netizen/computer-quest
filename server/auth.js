@@ -1,6 +1,12 @@
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import { db } from './db.js'
+import {
+  loadMemberships,
+  getDurableMembership,
+  getDurableMembershipByEmail,
+  saveDurableMembership,
+} from './membershipStore.js'
 
 const JWT_SECRET = process.env.CQ_JWT_SECRET || 'cq-dev-jwt-secret-change-in-production'
 const JWT_DAYS = 14
@@ -11,23 +17,24 @@ const ADMIN_EMAILS = new Set(
 )
 
 /**
- * Sign JWT. Optional membership snapshot keeps paid access alive across
- * Vercel serverless instances (ephemeral /tmp JSON DB).
+ * Sign JWT with identity + membership snapshot so paid access survives
+ * Vercel multi-instance /tmp DB loss without requiring re-login.
  */
 export function signToken(user, membershipRow = null) {
+  const m = membershipRow || getMembership(user.id)
+  const pub = membershipPublic(m)
   const payload = {
     sub: user.id,
     role: user.role || 'student',
     email: user.email,
     name: user.name || '',
   }
-  const m = membershipRow || getMembership(user.id)
-  if (m && m.status === 'active') {
-    payload.mStatus = 'active'
-    payload.mStart = m.start_at || null
-    payload.mExp = m.expires_at || null
-    payload.mSource = m.source || null
-    payload.mPlanId = m.plan_id || null
+  if (pub && pub.status && pub.status !== 'none') {
+    payload.mstatus = pub.status
+    payload.mstart = pub.startAt || null
+    payload.mexp = pub.expiresAt || null
+    payload.msource = pub.source || null
+    payload.mplan = pub.planId || null
   }
   return jwt.sign(payload, JWT_SECRET, { expiresIn: `${JWT_DAYS}d` })
 }
@@ -40,15 +47,15 @@ export function verifyToken(token) {
   }
 }
 
-function rehydrateMembershipFromJwt(userId, payload) {
-  if (payload.mStatus !== 'active') return
+function upsertLocalMembership(userId, row) {
+  if (!userId || !row) return
   const now = new Date().toISOString()
   try {
     db.prepare(
       `INSERT INTO memberships (user_id, status, start_at, expires_at, source, updated_at, plan_id)
-       VALUES (?, 'active', ?, ?, ?, ?, ?)
+       VALUES (?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(user_id) DO UPDATE SET
-         status = 'active',
+         status = excluded.status,
          start_at = excluded.start_at,
          expires_at = excluded.expires_at,
          source = excluded.source,
@@ -56,37 +63,37 @@ function rehydrateMembershipFromJwt(userId, payload) {
          plan_id = excluded.plan_id`
     ).run(
       userId,
-      payload.mStart || now,
-      payload.mExp || null,
-      payload.mSource || 'jwt_rehydrate',
-      now,
-      payload.mPlanId || null
+      row.status || 'none',
+      row.start_at || null,
+      row.expires_at || null,
+      row.source || null,
+      row.updated_at || now,
+      row.plan_id || null
     )
-  } catch {
-    try {
-      const existing = db.prepare('SELECT * FROM memberships WHERE user_id = ?').get(userId)
-      if (!existing) {
-        db.prepare(
-          `INSERT INTO memberships (user_id, status, start_at, expires_at, source, updated_at)
-           VALUES (?, 'active', ?, ?, ?, ?)`
-        ).run(userId, payload.mStart || now, payload.mExp || null, payload.mSource || 'jwt_rehydrate', now)
-      }
-    } catch {}
+  } catch (e) {
+    console.warn('[cq-auth] upsertLocalMembership', e.message)
   }
 }
 
-/**
- * Resolve the session user for a verified JWT.
- * On Vercel the JSON DB under /tmp is per-instance. Login/signup may create user id A on
- * instance 1; a later request can hit instance 2 with an empty DB. For any valid JWT we
- * rehydrate the user row (and membership snapshot) from claims.
- */
+function applyMembershipClaims(userId, payload) {
+  if (!userId || !payload?.mstatus) return
+  if (payload.mstatus !== 'active' && payload.mstatus !== 'expired') return
+  upsertLocalMembership(userId, {
+    status: payload.mstatus,
+    start_at: payload.mstart || null,
+    expires_at: payload.mexp || null,
+    source: payload.msource || null,
+    plan_id: payload.mplan || null,
+    updated_at: new Date().toISOString(),
+  })
+}
+
 function resolveSessionUser(payload) {
   if (!payload?.sub) return null
 
   let user = db.prepare('SELECT id, email, name, role, created_at FROM users WHERE id = ?').get(payload.sub)
   if (user) {
-    rehydrateMembershipFromJwt(user.id, payload)
+    applyMembershipClaims(user.id, payload)
     return user
   }
 
@@ -94,28 +101,30 @@ function resolveSessionUser(payload) {
   if (email) {
     user = db.prepare('SELECT id, email, name, role, created_at FROM users WHERE email = ?').get(email)
     if (user) {
-      rehydrateMembershipFromJwt(user.id, payload)
+      applyMembershipClaims(user.id, payload)
       return user
     }
   }
 
   if (!email) return null
+
   const now = new Date().toISOString()
   const id = String(payload.sub)
-  const role = payload.role === 'admin' && ADMIN_EMAILS.has(email) ? 'admin' : 'student'
+  let safeRole = payload.role === 'admin' ? 'admin' : 'student'
+  if (safeRole === 'admin' && !ADMIN_EMAILS.has(email)) safeRole = 'student'
   const name =
     (payload.name && String(payload.name).trim()) ||
-    (role === 'admin' ? 'Course Admin' : email.split('@')[0] || 'Student')
+    (safeRole === 'admin' ? 'Course Admin' : email.split('@')[0] || 'Student')
 
   try {
     db.prepare(
       `INSERT INTO users (id, email, name, password_hash, role, created_at) VALUES (?, ?, ?, ?, ?, ?)`
-    ).run(id, email, name, '', role, now)
+    ).run(id, email, name, '', safeRole, now)
   } catch {
-    // concurrent insert or existing — continue
+    /* concurrent */
   }
 
-  if (role === 'admin') {
+  if (safeRole === 'admin') {
     try {
       const start = new Date()
       const end = new Date(start)
@@ -124,21 +133,24 @@ function resolveSessionUser(payload) {
         `INSERT INTO memberships (user_id, status, start_at, expires_at, source, updated_at)
          VALUES (?, 'active', ?, ?, 'admin_grant', ?)`
       ).run(id, start.toISOString(), end.toISOString(), now)
-    } catch {}
+    } catch {
+      /* ignore */
+    }
   } else {
-    rehydrateMembershipFromJwt(id, payload)
+    applyMembershipClaims(id, payload)
   }
 
   user =
     db.prepare('SELECT id, email, name, role, created_at FROM users WHERE id = ?').get(id) ||
     db.prepare('SELECT id, email, name, role, created_at FROM users WHERE email = ?').get(email)
+
   if (user) return user
 
   return {
     id,
     email,
     name,
-    role,
+    role: safeRole,
     created_at: now,
   }
 }
@@ -152,6 +164,7 @@ export function authMiddleware(req, res, next) {
   const user = resolveSessionUser(payload)
   if (!user) return res.status(401).json({ ok: false, error: 'User not found' })
   req.user = user
+  req.jwtPayload = payload
   next()
 }
 
@@ -191,10 +204,14 @@ export function membershipPublic(row) {
   let status = row.status
   if (row.expires_at && status === 'active' && new Date(row.expires_at).getTime() < now) {
     status = 'expired'
-    db.prepare(`UPDATE memberships SET status = 'expired', updated_at = ? WHERE user_id = ?`).run(
-      new Date().toISOString(),
-      row.user_id
-    )
+    try {
+      db.prepare(`UPDATE memberships SET status = 'expired', updated_at = ? WHERE user_id = ?`).run(
+        new Date().toISOString(),
+        row.user_id
+      )
+    } catch {
+      /* ignore */
+    }
   }
   const planId =
     row.plan_id ||
@@ -209,3 +226,41 @@ export function membershipPublic(row) {
     planId: planId || null,
   }
 }
+
+export async function hydrateMembershipFromDurable(user) {
+  if (!user?.id) return getMembership(user?.id)
+  try {
+    await loadMemberships()
+  } catch (e) {
+    console.warn('[cq-auth] loadMemberships', e.message)
+  }
+  let durable = getDurableMembership(user.id)
+  if (!durable && user.email) durable = getDurableMembershipByEmail(user.email)
+  if (durable) {
+    upsertLocalMembership(user.id, durable)
+  }
+  return getMembership(user.id)
+}
+
+export async function persistMembership(user, membershipFields) {
+  const now = new Date().toISOString()
+  const row = {
+    user_id: user.id,
+    email: user.email,
+    status: membershipFields.status || 'active',
+    start_at: membershipFields.start_at || membershipFields.startAt || null,
+    expires_at: membershipFields.expires_at || membershipFields.expiresAt || null,
+    source: membershipFields.source || null,
+    plan_id: membershipFields.plan_id || membershipFields.planId || null,
+    updated_at: now,
+  }
+  upsertLocalMembership(user.id, row)
+  const saved = await saveDurableMembership(row)
+  return {
+    row: getMembership(user.id),
+    public: membershipPublic(getMembership(user.id)),
+    durable: saved,
+  }
+}
+
+export { loadMemberships, saveDurableMembership }
