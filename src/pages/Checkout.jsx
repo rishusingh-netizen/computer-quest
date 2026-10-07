@@ -7,7 +7,7 @@ import * as authStore from '../services/authStore'
 import RequireAuth from '../components/auth/RequireAuth'
 
 function CheckoutInner() {
-  const { user, hasAccess, refreshUser, accessDaysLeft } = useAuth()
+  const { user, hasAccess, refreshUser, applySession, accessDaysLeft } = useAuth()
   const [searchParams] = useSearchParams()
   const planFromUrl = searchParams.get('plan') || ''
 
@@ -85,7 +85,14 @@ function CheckoutInner() {
     if (res.ok && (res.status === 'paid' || res.alreadyPaid)) {
       setStatus('paid')
       setMessage('Payment verified by server. Access activated from enrollment date.')
-      await refreshUser()
+      if (res.token || res.user) {
+        applySession(res.user, res.token)
+      }
+      try {
+        await refreshUser()
+      } catch {
+        /* applySession already granted client-side access */
+      }
       return
     }
     setStatus(res.status || 'failed')
@@ -142,77 +149,50 @@ function CheckoutInner() {
               />
               <span>
                 <strong>{p.name}</strong>
-                <span className="text-sm text-muted">
-                  {' '}
-                  — {formatPrice(p.price)} · {p.durationDays} days
-                </span>
+                <span className="text-sm text-muted"> — {formatPrice(p.price)} · {p.durationDays} days</span>
               </span>
             </label>
           ))}
         </div>
       )}
 
-      <p className="mt-3">
-        <strong>{selected?.name || course.name || 'Computer Quest'}</strong>
-        {selected ? ` — ${selected.durationDays} days access` : ''}
-      </p>
-      <p className="text-sm">
-        Price: <strong>{formatPrice(displayPrice)}</strong>
-        <span className="text-muted"> (admin plan price · charged by server)</span>
-      </p>
-      <p className="text-sm text-muted mt-2">
-        Payments are verified on the server. Client-side “success” alone never unlocks the course.
-        Provider adapter: <strong>mock</strong> (same server plan price will be used for
-        Stripe/Razorpay later).
-      </p>
+      <div className="mt-3">
+        <p className="text-sm">
+          Amount: <strong>{formatPrice(displayPrice)}</strong>
+          {selected?.durationDays ? ` · ${selected.durationDays} days` : ''}
+        </p>
+      </div>
 
-      {status === 'idle' && (
-        <button type="button" className="btn btn-primary mt-3" disabled={busy || !selected} onClick={startOrder}>
-          Create order
-        </button>
-      )}
+      {message && <p className="text-sm mt-2">{message}</p>}
 
-      {status === 'pending' && order && (
-        <div className="mt-3">
-          <p className="text-sm">
-            Order ID: <code>{order.id}</code> · Amount:{' '}
-            <strong>
-              {formatPrice(
-                order.amountPaise != null ? Math.round(Number(order.amountPaise) / 100) : order.amountInr
-              )}
-            </strong>
-            {order.planName ? ` · ${order.planName}` : ''}
-          </p>
-          <div className="flex gap-2 mt-3" style={{ flexWrap: 'wrap' }}>
+      <div className="flex gap-2 mt-4" style={{ flexWrap: 'wrap' }}>
+        {status === 'idle' && (
+          <button type="button" className="btn btn-primary" disabled={busy || !selected} onClick={startOrder}>
+            {busy ? 'Creating…' : 'Create order'}
+          </button>
+        )}
+        {status === 'pending' && (
+          <>
             <button type="button" className="btn btn-primary" disabled={busy} onClick={() => pay('success')}>
-              Mock pay — success
+              {busy ? 'Verifying…' : 'Mock pay (success)'}
             </button>
             <button type="button" className="btn btn-secondary" disabled={busy} onClick={() => pay('fail')}>
-              Mock pay — fail
+              Mock fail
             </button>
             <button type="button" className="btn btn-ghost" disabled={busy} onClick={() => pay('cancelled')}>
               Cancel
             </button>
-          </div>
-        </div>
-      )}
-
-      {status === 'paid' && (
-        <div className="mt-3">
-          <p className="text-sm" style={{ color: '#047857' }}>
-            {message || 'Access activated.'}
-          </p>
-          <Link to="/" className="btn btn-primary mt-3">
+          </>
+        )}
+        {status === 'paid' && (
+          <Link to="/" className="btn btn-primary">
             Go to Dashboard
           </Link>
-        </div>
-      )}
-
-      {message && status !== 'paid' && <p className="text-sm mt-3 text-muted">{message}</p>}
-
-      <p className="text-sm mt-4">
-        <Link to="/course">← Back to course plans</Link>
-      </p>
+        )}
+        <Link to="/course" className="btn btn-secondary">
+          Back to course
+        </Link>
+      </div>
     </div>
   )
 }
