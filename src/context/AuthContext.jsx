@@ -1,8 +1,14 @@
-import { createContext, useContext, useEffect, useMemo, useState, useCallback } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import * as authStore from '../services/authStore'
-import { daysRemaining } from '../config/course'
 
 const AuthContext = createContext(null)
+
+function daysRemaining(expiresAt) {
+  if (!expiresAt) return null
+  const ms = new Date(expiresAt).getTime() - Date.now()
+  if (!Number.isFinite(ms)) return null
+  return Math.max(0, Math.ceil(ms / (24 * 60 * 60 * 1000)))
+}
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
@@ -10,13 +16,24 @@ export function AuthProvider({ children }) {
   const [serverOk, setServerOk] = useState(true)
 
   useEffect(() => {
+    let cancelled = false
     ;(async () => {
-      const online = await authStore.ensureAdminBootstrap()
-      setServerOk(online)
-      const sessionUser = await authStore.restoreSession()
-      if (sessionUser) setUser(sessionUser)
-      setReady(true)
+      try {
+        await authStore.ensureAdminBootstrap()
+        const sessionUser = await authStore.restoreSession()
+        if (!cancelled) {
+          setUser(sessionUser)
+          setServerOk(authStore.isApiOnline())
+        }
+      } catch {
+        if (!cancelled) setServerOk(false)
+      } finally {
+        if (!cancelled) setReady(true)
+      }
     })()
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   const signup = useCallback(async (payload) => {
@@ -42,6 +59,13 @@ export function AuthProvider({ children }) {
     return sessionUser
   }, [])
 
+  /** Apply user (+ optional new JWT) from payment confirm without a full re-login. */
+  const applySession = useCallback((nextUser, token) => {
+    authStore.applySession(nextUser, token)
+    if (nextUser) setUser(nextUser)
+    return nextUser
+  }, [])
+
   const isLoggedIn = Boolean(user)
   const hasAccess = useMemo(() => authStore.hasActiveAccess(user), [user])
   const isAdmin = useMemo(() => authStore.isAdminUser(user), [user])
@@ -60,11 +84,13 @@ export function AuthProvider({ children }) {
       login,
       logout,
       refreshUser,
+      applySession,
       hasAccess,
       isAdmin,
       accessDaysLeft,
+      membership: user?.membership || null,
     }),
-    [user, ready, serverOk, isLoggedIn, signup, login, logout, refreshUser, hasAccess, isAdmin, accessDaysLeft]
+    [user, ready, serverOk, isLoggedIn, signup, login, logout, refreshUser, applySession, hasAccess, isAdmin, accessDaysLeft]
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

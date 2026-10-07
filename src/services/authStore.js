@@ -13,7 +13,6 @@ export function isApiOnline() {
 }
 
 export async function ensureAdminBootstrap() {
-  // Server bootstraps admin; probe health
   const health = await api.health()
   apiOnline = !health.offline
   return apiOnline
@@ -25,7 +24,6 @@ export async function signUp({ name, email, password }) {
   if (!res.ok) return { ok: false, error: res.error || 'Signup failed' }
   setToken(res.token)
   lastUser = res.user
-  // migrate local progress if any
   try {
     const raw = localStorage.getItem('cq_progress')
     if (raw) {
@@ -81,7 +79,7 @@ export async function restoreSession() {
 }
 
 export function refreshMembershipStatus(user) {
-  return user // membership already server-evaluated
+  return user
 }
 
 export function hasActiveAccess(user) {
@@ -92,7 +90,6 @@ export function isAdminUser(user) {
   return String(user?.role || '').trim().toLowerCase() === 'admin'
 }
 
-/** @deprecated client orders — use api.createOrder / confirmPayment */
 export function createOrder() {
   return { ok: false, error: 'Use server payment API' }
 }
@@ -101,6 +98,25 @@ export async function serverCreateOrder(planId) {
   return api.createOrder(planId ? { planId } : {})
 }
 
+/**
+ * Confirm mock payment. On success the server returns a refreshed JWT that
+ * embeds membership claims — store it immediately so access survives cold starts
+ * without requiring the student to log in again.
+ */
 export async function serverConfirmPayment(orderId, mockResult) {
-  return api.confirmPayment(orderId, mockResult)
+  const res = await api.confirmPayment(orderId, mockResult)
+  if (res?.ok && res.token) {
+    setToken(res.token)
+  }
+  if (res?.ok && res.user) {
+    lastUser = res.user
+  }
+  return res
+}
+
+/** Apply a server user + optional token (e.g. after payment confirm). */
+export function applySession(user, token) {
+  if (token) setToken(token)
+  if (user) lastUser = user
+  return lastUser
 }
