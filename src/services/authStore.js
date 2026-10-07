@@ -13,6 +13,7 @@ export function isApiOnline() {
 }
 
 export async function ensureAdminBootstrap() {
+  // Server bootstraps admin; probe health
   const health = await api.health()
   apiOnline = !health.offline
   return apiOnline
@@ -24,6 +25,7 @@ export async function signUp({ name, email, password }) {
   if (!res.ok) return { ok: false, error: res.error || 'Signup failed' }
   setToken(res.token)
   lastUser = res.user
+  // migrate local progress if any
   try {
     const raw = localStorage.getItem('cq_progress')
     if (raw) {
@@ -74,12 +76,17 @@ export async function restoreSession() {
     lastUser = null
     return null
   }
+  // Server may return a refreshed JWT with up-to-date membership claims
+  // (after durable hydrate). Store it so cold starts keep access.
+  if (res.token) {
+    setToken(res.token)
+  }
   lastUser = res.user
   return res.user
 }
 
 export function refreshMembershipStatus(user) {
-  return user
+  return user // membership already server-evaluated
 }
 
 export function hasActiveAccess(user) {
@@ -90,6 +97,7 @@ export function isAdminUser(user) {
   return String(user?.role || '').trim().toLowerCase() === 'admin'
 }
 
+/** @deprecated client orders — use api.createOrder / confirmPayment */
 export function createOrder() {
   return { ok: false, error: 'Use server payment API' }
 }

@@ -205,12 +205,14 @@ app.post('/api/auth/signup', async (req, res) => {
 
 app.post('/api/auth/login', async (req, res) => {
   try {
+    // Re-sync owner/admin from env on every login attempt (Vercel cold starts / ephemeral DB)
     try {
       await ensureAdmin()
     } catch (e) {
       console.warn('[cq-api] ensureAdmin during login:', e.message)
     }
     const email = String(req.body?.email || '').trim().toLowerCase()
+    // Trim password so copy/paste trailing spaces do not cause false "Invalid credentials"
     const password = String(req.body?.password || '').trim()
     if (!email || !password) {
       return res.status(400).json({ ok: false, error: 'email and password required' })
@@ -239,13 +241,19 @@ app.get('/api/auth/me', authMiddleware, async (req, res) => {
   } catch (e) {
     console.warn('[cq-api] hydrate on /me', e.message)
   }
+  // Always re-sign with current membership so JWT claims stay in sync with
+  // durable store (source of truth). Client stores the refreshed token so
+  // subsequent cold starts rehydrate from claims without losing access.
   const mem = getMembership(req.user.id)
+  const token = signToken(req.user, mem)
   res.json({
     ok: true,
+    token,
     user: publicUser(req.user, membershipPublic(mem)),
   })
 })
 
+// Course config (public price/title; completion rules admin can change)
 app.get('/api/course', async (_req, res) => {
   try {
     const cfg = await getConfig()
@@ -386,15 +394,22 @@ app.post('/api/payments/confirm', authMiddleware, async (req, res) => {
   )
   const cfg = await getConfig()
   const plan = order.plan_id ? findPlan(cfg, order.plan_id) : null
-  const durationDays = plan
-    ? Number(plan.duration_days) || Number(cfg.duration_days) || 730
-    : Number(cfg.duration_days) || 730
+  const rawDays = plan
+    ? Number(plan.duration_days ?? plan.durationDays)
+    : Number(cfg.duration_days)
+  const durationDays =
+    Number.isFinite(rawDays) && rawDays > 0
+      ? Math.round(rawDays)
+      : Number(cfg.duration_days) > 0
+        ? Math.round(Number(cfg.duration_days))
+        : 730
   const planId = plan?.id || order.plan_id || null
   const source = planId ? `purchase:${planId}` : 'purchase'
   const start = new Date()
   const end = new Date(start)
   end.setDate(end.getDate() + durationDays)
-  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id) || req.user
+  const user =
+    db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id) || req.user
   const persisted = await persistMembership(user, {
     status: 'active',
     start_at: start.toISOString(),
@@ -526,101 +541,93 @@ app.get('/api/admin/stats', authMiddleware, adminMiddleware, (_req, res) => {
 
 app.patch('/api/admin/course', authMiddleware, adminMiddleware, async (req, res) => {
   try {
-    const {
-      pricePaise,
-      priceInr,
-      price_paise,
-      durationDays,
-      duration_days,
-      title,
-      completion,
-      plans,
-    } = req.body || {}
-    const cfg = await getConfig()
-    let nextPaise = Number(cfg.price_paise) || 0
-    if (pricePaise != null && Number.isFinite(Number(pricePaise))) {
-      nextPaise = Math.round(Number(pricePaise))
-    } else if (price_paise != null && Number.isFinite(Number(price_paise))) {
-      nextPaise = Math.round(Number(price_paise))
-    } else if (priceInr != null && Number.isFinite(Number(priceInr))) {
-      nextPaise = Math.round(Number(priceInr) * 100)
+    const body = req.body || {}
+    const current = await getConfig()
+    const next = { ...current }
+    if (body.pricePaise != null || body.price_paise != null) {
+      next.price_paise = Number(body.pricePaise ?? body.price_paise) || 0
     }
-    if (nextPaise < 0) {
-      return res.status(400).json({ ok: false, error: 'Price cannot be negative' })
+    if (body.durationDays != null || body.duration_days != null) {
+      next.duration_days = Number(body.durationDays ?? body.duration_days) || 730
     }
-    let nextDays = cfg.duration_days
-    if (durationDays != null && Number.isFinite(Number(durationDays))) {
-      nextDays = Math.round(Number(durationDays))
-    } else if (duration_days != null && Number.isFinite(Number(duration_days))) {
-      nextDays = Math.round(Number(duration_days))
+    if (body.title != null) next.title = String(body.title)
+    if (body.completion != null) {
+      next.completion_json =
+        typeof body.completion === 'string' ? body.completion : JSON.stringify(body.completion)
     }
-    const nextTitle = title != null && String(title).trim() ? String(title).trim() : cfg.title
-    const completion_json = completion ? JSON.stringify(completion) : cfg.completion_json
-
-    const payload = {
-      price_paise: nextPaise,
-      duration_days: nextDays,
-      title: nextTitle,
-      completion_json,
-    }
-    if (Array.isArray(plans)) {
-      payload.plans = plans
-      const active = plans.find((p) => p && p.active !== false) || plans[0]
+    if (Array.isArray(body.plans)) {
+      next.plans = body.plans
+      const active = body.plans.find((p) => p && p.active !== false) || body.plans[0]
       if (active) {
-        const pPaise =
+        const pp =
           active.pricePaise != null
             ? Number(active.pricePaise)
             : active.price_paise != null
               ? Number(active.price_paise)
               : active.priceInr != null
                 ? Math.round(Number(active.priceInr) * 100)
-                : null
-        if (pPaise != null && Number.isFinite(pPaise) && pPaise >= 0) {
-          payload.price_paise = Math.round(pPaise)
-        }
-        const pDays = Number(active.durationDays ?? active.duration_days)
-        if (Number.isFinite(pDays) && pDays > 0) payload.duration_days = Math.round(pDays)
+                : next.price_paise
+        if (Number.isFinite(pp)) next.price_paise = pp
+        const dd = active.duration_days ?? active.durationDays
+        if (dd != null && Number(dd) > 0) next.duration_days = Number(dd)
       }
     }
-
-    const saved = await saveCourseConfig(payload)
-    if (!saved.ok) {
-      return res.status(500).json({ ok: false, error: saved.error || 'Failed to save course config' })
-    }
-
-    const now = new Date().toISOString()
-    try {
-      db.prepare(
-        `UPDATE course_config SET price_paise = ?, duration_days = ?, title = ?, completion_json = ?, updated_at = ? WHERE id = 1`
-      ).run(
-        saved.config.price_paise,
-        saved.config.duration_days,
-        saved.config.title,
-        saved.config.completion_json,
-        now
-      )
-    } catch (e) {
-      console.warn('[cq-api] DB course_config sync skipped:', e.message)
-    }
-
-    const pub = courseConfigToPublic(saved.config)
-    res.json({
-      ok: true,
-      course: pub,
-      persistedToGitHub: !!saved.persistedToGitHub,
-      durable: !!saved.durable,
-      warning: saved.warning || undefined,
-    })
+    next.updated_at = new Date().toISOString()
+    const saved = await saveCourseConfig(next)
+    res.json({ ok: true, course: courseConfigToPublic(configFromDurable(saved.config || next)), durable: saved })
   } catch (e) {
     console.error(e)
-    res.status(500).json({ ok: false, error: 'Failed to update course' })
+    res.status(500).json({ ok: false, error: e.message || 'Failed to update course' })
   }
 })
 
+app.post('/api/admin/membership', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const userId = String(req.body?.userId || '').trim()
+    const action = String(req.body?.action || '').trim()
+    if (!userId) return res.status(400).json({ ok: false, error: 'userId required' })
+    const user = db.prepare('SELECT * FROM users WHERE id = ?').get(userId)
+    if (!user) return res.status(404).json({ ok: false, error: 'User not found' })
+    if (action === 'grant') {
+      const start = new Date()
+      const end = new Date(start)
+      end.setFullYear(end.getFullYear() + 2)
+      await persistMembership(user, {
+        status: 'active',
+        start_at: start.toISOString(),
+        expires_at: end.toISOString(),
+        source: 'admin_grant',
+        plan_id: null,
+      })
+    } else if (action === 'revoke') {
+      await persistMembership(user, {
+        status: 'none',
+        start_at: null,
+        expires_at: null,
+        source: 'admin_revoke',
+        plan_id: null,
+      })
+    } else {
+      return res.status(400).json({ ok: false, error: 'action must be grant or revoke' })
+    }
+    const mem = getMembership(userId)
+    res.json({ ok: true, membership: membershipPublic(mem) })
+  } catch (e) {
+    console.error(e)
+    res.status(500).json({ ok: false, error: 'Failed to update membership' })
+  }
+})
+
+// Vercel serverless: export the Express app
 export default app
 
 if (!process.env.VERCEL && !process.env.AWS_LAMBDA_FUNCTION_NAME) {
-  app.listen(PORT, () => {
-    console.log(`[cq-api] listening on http://127.0.0.1:${PORT}`)
-  })
+  ensureAdmin()
+    .then(() => {
+      app.listen(PORT, () => console.log(`[cq-api] listening on http://127.0.0.1:${PORT}`))
+    })
+    .catch((e) => {
+      console.error(e)
+      process.exit(1)
+    })
 }
