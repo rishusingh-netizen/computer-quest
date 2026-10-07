@@ -16,10 +16,6 @@ const ADMIN_EMAILS = new Set(
   [ADMIN_EMAIL, 'admin@computerquest.local', 'admin@computerquest.app'].map((e) => e.toLowerCase())
 )
 
-/**
- * Sign JWT with identity + membership snapshot so paid access survives
- * Vercel multi-instance /tmp DB loss without requiring re-login.
- */
 export function signToken(user, membershipRow = null) {
   const m = membershipRow || getMembership(user.id)
   const pub = membershipPublic(m)
@@ -50,26 +46,38 @@ export function verifyToken(token) {
 function upsertLocalMembership(userId, row) {
   if (!userId || !row) return
   const now = new Date().toISOString()
+  const status = row.status || 'none'
+  // JSON DB adapter maps ON CONFLICT membership inserts as:
+  //   [user_id, start_at, expires_at, source, updated_at, plan_id] with status 'active'
   try {
-    db.prepare(
-      `INSERT INTO memberships (user_id, status, start_at, expires_at, source, updated_at, plan_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?)
-       ON CONFLICT(user_id) DO UPDATE SET
-         status = excluded.status,
-         start_at = excluded.start_at,
-         expires_at = excluded.expires_at,
-         source = excluded.source,
-         updated_at = excluded.updated_at,
-         plan_id = excluded.plan_id`
-    ).run(
-      userId,
-      row.status || 'none',
-      row.start_at || null,
-      row.expires_at || null,
-      row.source || null,
-      row.updated_at || now,
-      row.plan_id || null
-    )
+    if (status === 'active') {
+      db.prepare(
+        `INSERT INTO memberships (user_id, status, start_at, expires_at, source, updated_at, plan_id)
+         VALUES (?, 'active', ?, ?, ?, ?, ?)
+         ON CONFLICT(user_id) DO UPDATE SET
+           status = 'active', start_at = excluded.start_at, expires_at = excluded.expires_at,
+           source = excluded.source, updated_at = excluded.updated_at, plan_id = excluded.plan_id`
+      ).run(
+        userId,
+        row.start_at || null,
+        row.expires_at || null,
+        row.source || null,
+        row.updated_at || now,
+        row.plan_id || null
+      )
+    } else {
+      db.prepare(
+        `INSERT INTO memberships (user_id, status, start_at, expires_at, source, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?)`
+      ).run(
+        userId,
+        status,
+        row.start_at || null,
+        row.expires_at || null,
+        row.source || null,
+        row.updated_at || now
+      )
+    }
   } catch (e) {
     console.warn('[cq-auth] upsertLocalMembership', e.message)
   }
@@ -146,13 +154,7 @@ function resolveSessionUser(payload) {
 
   if (user) return user
 
-  return {
-    id,
-    email,
-    name,
-    role: safeRole,
-    created_at: now,
-  }
+  return { id, email, name, role: safeRole, created_at: now }
 }
 
 export function authMiddleware(req, res, next) {
