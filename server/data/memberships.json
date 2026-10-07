@@ -1,4 +1,15 @@
 {
-  "updated_at": "2026-10-07T00:00:00.000Z",
-  "byUserId": {}
+  "updated_at": "2026-10-07T10:27:51.450Z",
+  "byUserId": {
+    "usr_muxyrv62_ab4c1352": {
+      "user_id": "usr_muxyrv62_ab4c1352",
+      "email": "mem.jwt.1791368870924@test.local",
+      "status": "active",
+      "start_at": "2026-10-07T10:27:51.449Z",
+      "expires_at": "2028-10-06T10:27:51.449Z",
+      "source": "purchase:plan-2y",
+      "plan_id": "plan-2y",
+      "updated_at": "2026-10-07T10:27:51.450Z"
+    }
+  }
 }
