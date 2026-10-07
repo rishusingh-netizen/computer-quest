@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-07T10:37:45.663Z",
+  "updated_at": "2026-10-07T10:41:36.351Z",
   "byUserId": {
     "usr_muxyrv62_ab4c1352": {
       "user_id": "usr_muxyrv62_ab4c1352",
@@ -30,6 +30,16 @@
       "source": "purchase:plan-2y",
       "plan_id": "plan-2y",
       "updated_at": "2026-10-07T10:37:45.663Z"
+    },
+    "usr_muxz9jlo_ba37ee27": {
+      "user_id": "usr_muxz9jlo_ba37ee27",
+      "email": "student_me_1791369695@test.local",
+      "status": "active",
+      "start_at": "2026-10-07T10:41:36.351Z",
+      "expires_at": "2027-10-07T10:41:36.351Z",
+      "source": "purchase:plan-1y",
+      "plan_id": "plan-1y",
+      "updated_at": "2026-10-07T10:41:36.351Z"
     }
   }
 }
