@@ -23,7 +23,7 @@ import { useAuth } from '../context/AuthContext'
 import { COURSE } from '../config/course'
 
 function findNextLesson(completedLessons) {
-  // Only offer lessons that actually have full content (Levels 1–5 live).
+  // Only offer lessons that actually have full content (Levels 1–6 live).
   for (const lvl of LEVELS) {
     if (lvl.available === false) continue
     for (const lesson of lvl.lessons) {
@@ -166,9 +166,9 @@ export default function Learn() {
           </div>
           <h2>Lesson coming soon</h2>
           <p>
-            Full interactive content for this lesson is not available yet. Levels 1–5
-            (Basics, Typing, Office, Internet & Email, Computer Security) are live now.
-            Levels 6–9 are listed as a roadmap and will unlock when content is ready.
+            Full interactive content for this lesson is not available yet. Levels 1–6
+            (Basics, Typing, Office, Internet & Email, Computer Security, Design) are live now.
+            Levels 7–9 are listed as a roadmap and will unlock when content is ready.
           </p>
           <Link to="/learn" className="btn btn-primary">
             Back to Learn
@@ -194,7 +194,7 @@ export default function Learn() {
         <div>
           <h2 className="learn-hello">Welcome back, {firstName}!</h2>
           <p className="text-muted text-sm mt-1">
-            Levels 1–5 are live. Levels 6–9 are on the roadmap (Coming soon).
+            Levels 1–6 are live. Levels 7–9 are on the roadmap (Coming soon).
           </p>
         </div>
         <div className="learn-stat-row">
@@ -235,7 +235,7 @@ export default function Learn() {
               <>
                 <h3 className="card-title">You finished all live lessons</h3>
                 <p className="text-sm text-muted mt-1">
-                  Practice Lab, Game Zone, tests and revision are still available. Levels 6–9 will unlock when published.
+                  Practice Lab, Game Zone, tests and revision are still available. Levels 7–9 will unlock when published.
                 </p>
               </>
             ) : (
@@ -354,7 +354,7 @@ export default function Learn() {
       <div className="mb-2">
         <h3 className="card-title mb-1">Course structure</h3>
         <p className="text-sm text-muted mb-3">
-          {COURSE.name} · {LEVELS.length} levels · {getTotalLessons()} lessons (Levels 1–5 live)
+          {COURSE.name} · {LEVELS.length} levels · {getTotalLessons()} lessons (Levels 1–6 live)
         </p>
       </div>
 
