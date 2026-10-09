@@ -1,8 +1,8 @@
 /**
  * Computer Quest – Curriculum levels (data-driven).
- * Levels 1–5 are live (full lesson content). Levels 6–9 are visible roadmap only
+ * Levels 1–6 are live (full lesson content). Levels 7–9 are visible roadmap only
  * (available: false) until full interactive lessons ship.
- * Level 5 (Computer Security) shipped with full lessons.
+ * Level 6 (Design & Creative Tools) shipped with full lessons.
  */
 
 export const LEVELS = [
@@ -95,7 +95,7 @@ export const LEVELS = [
     description: 'Canva, Photoshop basics, photo/video editing, social creatives.',
     icon: 'Palette',
     color: '#8b5cf6',
-    available: false,
+    available: true,
     lessons: [
       { id: 'l6-1', title: 'Canva Basics', duration: '12 min', xp: 30 },
       { id: 'l6-2', title: 'Photoshop Basics', duration: '15 min', xp: 35 },
