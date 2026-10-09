@@ -1,8 +1,8 @@
 /**
  * Computer Quest – Curriculum levels (data-driven).
- * Levels 1–4 are live (full lesson content). Levels 5–9 are visible roadmap only
+ * Levels 1–5 are live (full lesson content). Levels 6–9 are visible roadmap only
  * (available: false) until full interactive lessons ship.
- * Level 4 (Internet & Email) shipped with full lessons.
+ * Level 5 (Computer Security) shipped with full lessons.
  */
 
 export const LEVELS = [
@@ -80,7 +80,7 @@ export const LEVELS = [
     description: 'Passwords, 2FA, phishing, malware, antivirus and privacy.',
     icon: 'Shield',
     color: '#ef4444',
-    available: false,
+    available: true,
     lessons: [
       { id: 'l5-1', title: 'Strong Passwords & 2FA', duration: '10 min', xp: 25 },
       { id: 'l5-2', title: 'Phishing & Scam Messages', duration: '12 min', xp: 30 },
@@ -169,9 +169,4 @@ export function getLessonMeta(lessonId) {
 
 export function getTotalLessons() {
   return LEVELS.reduce((sum, l) => sum + l.lessons.length, 0)
-}
-
-/** Lessons that currently have full interactive content shipped. */
-export function getLiveLessonCount() {
-  return LEVELS.filter((l) => l.available !== false).reduce((sum, l) => sum + l.lessons.length, 0)
 }
