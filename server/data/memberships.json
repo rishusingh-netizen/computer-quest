@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-10T16:52:37.032Z",
+  "updated_at": "2026-10-10T16:58:19.768Z",
   "byUserId": {
     "usr_muxyrv62_ab4c1352": {
       "user_id": "usr_muxyrv62_ab4c1352",
@@ -110,6 +110,16 @@
       "source": "purchase:plan-6m",
       "plan_id": "plan-6m",
       "updated_at": "2026-10-10T16:52:37.032Z"
+    },
+    "usr_mv2n1k70_441c23a7": {
+      "user_id": "usr_mv2n1k70_441c23a7",
+      "email": "durcred_1791651498@test.local",
+      "status": "active",
+      "start_at": "2026-10-10T16:58:19.768Z",
+      "expires_at": "2027-04-10T16:58:19.768Z",
+      "source": "purchase:plan-6m",
+      "plan_id": "plan-6m",
+      "updated_at": "2026-10-10T16:58:19.768Z"
     }
   }
 }
