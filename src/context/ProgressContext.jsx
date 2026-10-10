@@ -1,7 +1,8 @@
-import { createContext, useContext, useEffect, useReducer, useCallback, useState } from 'react'
+import { createContext, useContext, useEffect, useReducer, useCallback, useState, useRef } from 'react'
 import { load, save } from '../utils/storage'
 import { api, getToken } from '../services/api'
 import { getTotalLessons } from '../data/levels'
+import { useAuth } from './AuthContext'
 
 const ProgressContext = createContext(null)
 
@@ -34,34 +35,79 @@ function todayStr() {
   return new Date().toISOString().slice(0, 10)
 }
 
-function loadInitialState() {
-  const saved = load('progress', null)
-  if (saved && typeof saved === 'object') {
-    const merged = { ...defaultState, ...saved }
-    if (!Array.isArray(merged.completedLessons)) merged.completedLessons = []
-    if (!Array.isArray(merged.practiceCompleted)) merged.practiceCompleted = []
-    if (!Array.isArray(merged.revisionCompleted)) merged.revisionCompleted = []
-    if (!Array.isArray(merged.achievements)) merged.achievements = []
-    if (!Array.isArray(merged.weakTopics)) merged.weakTopics = []
-    if (!Array.isArray(merged.strongTopics)) merged.strongTopics = []
-    if (!merged.practiceScores || typeof merged.practiceScores !== 'object') merged.practiceScores = {}
-    if (!merged.revisionScores || typeof merged.revisionScores !== 'object') merged.revisionScores = {}
-    if (!merged.lessonScores || typeof merged.lessonScores !== 'object') merged.lessonScores = {}
-    if (!merged.testScores || typeof merged.testScores !== 'object') merged.testScores = {}
-    if (!merged.gamesPlayed || typeof merged.gamesPlayed !== 'object') merged.gamesPlayed = {}
-    if (typeof merged.xp !== 'number' || merged.xp < 0) merged.xp = 0
-    if (typeof merged.streak !== 'number' || merged.streak < 0) merged.streak = 0
-    merged.level = calcUserLevel(merged.xp)
-    return merged
+/** Merge two progress blobs without dropping completed lessons or lowering XP. */
+function mergeProgressState(local, remote) {
+  const left = local && typeof local === 'object' ? local : {}
+  const right = remote && typeof remote === 'object' ? remote : {}
+  const union = (a, b) => [...new Set([...(Array.isArray(a) ? a : []), ...(Array.isArray(b) ? b : [])])]
+  const xp = Math.max(
+    typeof left.xp === 'number' ? left.xp : 0,
+    typeof right.xp === 'number' ? right.xp : 0,
+    0
+  )
+  return {
+    ...defaultState,
+    ...left,
+    ...right,
+    xp,
+    level: calcUserLevel(xp),
+    streak: Math.max(left.streak || 0, right.streak || 0),
+    lastActiveDate: right.lastActiveDate || left.lastActiveDate || null,
+    completedLessons: union(left.completedLessons, right.completedLessons),
+    practiceCompleted: union(left.practiceCompleted, right.practiceCompleted),
+    revisionCompleted: union(left.revisionCompleted, right.revisionCompleted),
+    achievements: union(left.achievements, right.achievements),
+    lessonScores: { ...(left.lessonScores || {}), ...(right.lessonScores || {}) },
+    practiceScores: { ...(left.practiceScores || {}), ...(right.practiceScores || {}) },
+    revisionScores: { ...(left.revisionScores || {}), ...(right.revisionScores || {}) },
+    testScores: { ...(left.testScores || {}), ...(right.testScores || {}) },
+    gamesPlayed: { ...(left.gamesPlayed || {}), ...(right.gamesPlayed || {}) },
+    weakTopics: Array.isArray(right.weakTopics)
+      ? right.weakTopics
+      : Array.isArray(left.weakTopics)
+        ? left.weakTopics
+        : [],
+    strongTopics: Array.isArray(right.strongTopics)
+      ? right.strongTopics
+      : Array.isArray(left.strongTopics)
+        ? left.strongTopics
+        : [],
+    settings:
+      right.settings && typeof right.settings === 'object'
+        ? { ...(left.settings || {}), ...right.settings }
+        : left.settings || defaultState.settings,
   }
-  return { ...defaultState }
+}
+
+function normalizeProgress(saved) {
+  if (!saved || typeof saved !== 'object') return { ...defaultState }
+  const merged = { ...defaultState, ...saved }
+  if (!Array.isArray(merged.completedLessons)) merged.completedLessons = []
+  if (!Array.isArray(merged.practiceCompleted)) merged.practiceCompleted = []
+  if (!Array.isArray(merged.revisionCompleted)) merged.revisionCompleted = []
+  if (!Array.isArray(merged.achievements)) merged.achievements = []
+  if (!Array.isArray(merged.weakTopics)) merged.weakTopics = []
+  if (!Array.isArray(merged.strongTopics)) merged.strongTopics = []
+  if (!merged.practiceScores || typeof merged.practiceScores !== 'object') merged.practiceScores = {}
+  if (!merged.revisionScores || typeof merged.revisionScores !== 'object') merged.revisionScores = {}
+  if (!merged.lessonScores || typeof merged.lessonScores !== 'object') merged.lessonScores = {}
+  if (!merged.testScores || typeof merged.testScores !== 'object') merged.testScores = {}
+  if (!merged.gamesPlayed || typeof merged.gamesPlayed !== 'object') merged.gamesPlayed = {}
+  if (typeof merged.xp !== 'number' || merged.xp < 0) merged.xp = 0
+  if (typeof merged.streak !== 'number' || merged.streak < 0) merged.streak = 0
+  merged.level = calcUserLevel(merged.xp)
+  return merged
+}
+
+function loadInitialState() {
+  return normalizeProgress(load('progress', null))
 }
 
 function progressReducer(state, action) {
   switch (action.type) {
     case 'HYDRATE': {
       const payload = action.payload || {}
-      return { ...state, ...payload, level: calcUserLevel(payload.xp ?? state.xp) }
+      return mergeProgressState(state, payload)
     }
 
     case 'ADD_XP': {
@@ -266,8 +312,11 @@ function progressReducer(state, action) {
 }
 
 export function ProgressProvider({ children }) {
+  const { user, isLoggedIn, ready: authReady } = useAuth()
   const [state, dispatch] = useReducer(progressReducer, null, loadInitialState)
   const [ready, setReady] = useState(false)
+  const [hydratedForUser, setHydratedForUser] = useState(null)
+  const lastUserIdRef = useRef(null)
 
   useEffect(() => {
     dispatch({ type: 'UPDATE_STREAK' })
@@ -275,26 +324,49 @@ export function ProgressProvider({ children }) {
   }, [])
 
   useEffect(() => {
+    if (!authReady) return
+    const uid = user?.id || null
+    if (uid && uid !== lastUserIdRef.current) {
+      const scoped = load(`progress_${uid}`, null)
+      if (scoped) {
+        dispatch({ type: 'HYDRATE', payload: normalizeProgress(scoped) })
+      }
+      lastUserIdRef.current = uid
+      setHydratedForUser(null)
+    }
+    if (!uid && lastUserIdRef.current) {
+      lastUserIdRef.current = null
+      setHydratedForUser(null)
+    }
+  }, [authReady, user?.id])
+
+  useEffect(() => {
     let cancelled = false
     ;(async () => {
-      if (!getToken()) return
+      if (!authReady) return
+      if (!isLoggedIn || !getToken() || !user?.id) return
       const res = await api.getProgress()
-      if (!cancelled && res.ok && res.progress) {
+      if (cancelled) return
+      if (res.ok && res.progress) {
         dispatch({ type: 'HYDRATE', payload: res.progress })
       }
+      if (!cancelled) setHydratedForUser(user.id)
     })()
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [authReady, isLoggedIn, user?.id])
 
   useEffect(() => {
     if (!ready) return
     save('progress', state)
-    if (getToken()) {
-      api.putProgress(state).catch(() => {})
+    if (user?.id) {
+      save(`progress_${user.id}`, state)
     }
-  }, [state, ready])
+    if (!getToken() || !user?.id) return
+    if (hydratedForUser !== user.id) return
+    api.putProgress(state).catch(() => {})
+  }, [state, ready, user?.id, hydratedForUser])
 
   const addXp = useCallback((amount) => {
     dispatch({ type: 'ADD_XP', amount })
