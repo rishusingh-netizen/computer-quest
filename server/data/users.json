@@ -1,4 +1,14 @@
 {
-  "updated_at": "2026-10-10T00:00:00.000Z",
-  "byUserId": {}
+  "updated_at": "2026-10-10T17:10:51.630Z",
+  "byUserId": {
+    "usr_mv2nhoru_91e24939": {
+      "id": "usr_mv2nhoru_91e24939",
+      "email": "durfix_1791652250@cq-test.local",
+      "name": "Dur Test",
+      "password_hash": "$2a$10$2HmbAnhe.jil2qsGP7wICec5vm1wgEIEI4Utf6ifZQk23Sk.yaJPa",
+      "role": "student",
+      "created_at": "2026-10-10T17:10:51.498Z",
+      "updated_at": "2026-10-10T17:10:51.630Z"
+    }
+  }
 }
