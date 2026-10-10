@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-10T17:11:22.621Z",
+  "updated_at": "2026-10-10T17:24:40.781Z",
   "byUserId": {
     "usr_muxyrv62_ab4c1352": {
       "user_id": "usr_muxyrv62_ab4c1352",
@@ -130,6 +130,16 @@
       "source": "purchase:plan-6m",
       "plan_id": "plan-6m",
       "updated_at": "2026-10-10T17:11:22.621Z"
+    },
+    "usr_mv2nzfeg_ad0310bc": {
+      "user_id": "usr_mv2nzfeg_ad0310bc",
+      "email": "audit_e2e_1791653078@cq-test.local",
+      "status": "active",
+      "start_at": "2026-10-10T17:24:40.781Z",
+      "expires_at": "2027-04-10T17:24:40.781Z",
+      "source": "purchase:plan-6m",
+      "plan_id": "plan-6m",
+      "updated_at": "2026-10-10T17:24:40.781Z"
     }
   }
 }
