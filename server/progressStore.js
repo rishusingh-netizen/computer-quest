@@ -131,14 +131,33 @@ async function writeGithub(doc, sha) {
 }
 
 /**
- * Load durable progress map into memory (GitHub preferred, then local).
+ * Load durable progress map into memory.
+ *
+ * Prefer GitHub Contents API when CQ_GITHUB_TOKEN is set — raw.githubusercontent.com
+ * can lag several minutes behind Contents API writes (CDN cache), which previously
+ * caused cold-start loads to see an empty ledger and drop completed lessons.
+ * Fall back to raw URL, then local /tmp cache.
  */
 export async function loadProgressDoc({ force = false } = {}) {
   if (!force && cache && Date.now() - cacheLoadedAt < CACHE_MS) return cache
-  const fromGh = await readFromGitHubRaw()
+
+  let fromGh = null
+  if (githubToken()) {
+    try {
+      const meta = await readGithubMeta()
+      if (meta.content) fromGh = meta.content
+    } catch (e) {
+      console.warn('[cq-progress] Contents API load failed, falling back to raw', e.message)
+    }
+  }
+  if (!fromGh) {
+    fromGh = await readFromGitHubRaw()
+  }
+
   const local = readLocalFile()
   let doc = fromGh || local || emptyDoc()
   if (fromGh && local) {
+    // Merge: keep the newer per-user row from either side
     for (const [id, row] of Object.entries(local.byUserId || {})) {
       const a = fromGh.byUserId[id]
       if (!a) {
@@ -160,6 +179,7 @@ export function getDurableProgress(userId) {
   if (!userId || !cache) return null
   const row = cache.byUserId[userId]
   if (!row || typeof row !== 'object') return null
+  // Strip ledger metadata for consumers
   const { updated_at, user_id, ...progress } = row
   return progress
 }
