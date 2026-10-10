@@ -1,1 +1,69 @@
-PLACEHOLDER_WILL_FAIL
+/** Question banks Levels 5–9 — full banks for TestRunner */
+export const LEVEL5_QUESTIONS = [
+  { id: 'l5t1', topic: 'Passwords 2FA', type: 'mcq', question: 'A strong password should be:', options: ['Long and unique', 'Always "123456"', 'Your name only', 'Blank'], correctIndex: 0, explanation: 'Long unique passwords are stronger.' },
+  { id: 'l5t2', topic: 'Passwords 2FA', type: 'mcq', question: '2FA adds:', options: ['A second verification step', 'A second mouse', 'Two wallpapers', 'Two CPUs'], correctIndex: 0, explanation: '2FA is a second proof of identity.' },
+  { id: 'l5t3', topic: 'Phishing', type: 'mcq', question: 'Phishing tries to:', options: ['Trick you into giving secrets or money', 'Speed the GPU', 'Clean RAM', 'Install only fonts'], correctIndex: 0, explanation: 'Phishing is social engineering fraud.' },
+  { id: 'l5t4', topic: 'Malware', type: 'mcq', question: 'Safer downloads come from:', options: ['Official sites or app stores', 'Random pop-up cracks', 'Unknown email .exe', 'Comment spam links'], correctIndex: 0, explanation: 'Official sources reduce malware risk.' },
+  { id: 'l5t5', topic: 'Privacy', type: 'mcq', question: 'App permissions should be:', options: ['Limited to what the app needs', 'Always all allowed', 'Shared publicly', 'Turned into passwords'], correctIndex: 0, explanation: 'Least privilege protects privacy.' },
+  { id: 'l5t6', topic: 'Public Wi-Fi', type: 'mcq', question: 'On public Wi-Fi you should avoid:', options: ['Banking on open networks without VPN', 'Using airplane mode', 'Turning brightness down', 'Closing unused tabs'], correctIndex: 0, explanation: 'Open networks are easier to snoop.' },
+  { id: 'l5t7', topic: 'Passwords 2FA', type: 'mcq', question: 'Reusing the same password is:', options: ['Risky across sites', 'Always safer', 'Required by law', 'Only for games'], correctIndex: 0, explanation: 'One breach can unlock many accounts.' },
+  { id: 'l5t8', topic: 'Phishing', type: 'mcq', question: 'A common red flag is:', options: ['Urgent OTP request via odd link', 'Official app you opened yourself', 'Known teacher email you expected', 'Your calendar reminder'], correctIndex: 0, explanation: 'Urgency and OTP links are suspicious.' },
+  { id: 'l5t9', topic: 'Malware', type: 'mcq', question: 'Malware is:', options: ['Harmful software', 'A type of monitor', 'A search engine', 'A strong password'], correctIndex: 0, explanation: 'Malware harms systems or steals data.' },
+  { id: 'l5t10', topic: 'Privacy', type: 'mcq', question: 'Privacy settings help you:', options: ['Control who sees your data', 'Overclock the CPU', 'Increase RAM size', 'Print faster'], correctIndex: 0, explanation: 'Privacy controls limit data sharing.' },
+]
+
+export const LEVEL6_QUESTIONS = [
+  { id: 'l6t1', topic: 'Canva', type: 'mcq', question: 'Canva is mainly used for:', options: ['Graphic design templates', 'Compiling C++', 'Disk partitioning', 'BIOS updates'], correctIndex: 0, explanation: 'Canva helps create designs quickly.' },
+  { id: 'l6t2', topic: 'Photoshop', type: 'mcq', question: 'Layers in photo editors let you:', options: ['Edit parts separately', 'Delete the OS', 'Disable Wi-Fi', 'Format the disk'], correctIndex: 0, explanation: 'Layers keep edits non-destructive.' },
+  { id: 'l6t3', topic: 'Editing', type: 'mcq', question: 'Cropping a photo means:', options: ['Cutting the frame edges', 'Adding more pixels always', 'Changing the CPU', 'Renaming the file only'], correctIndex: 0, explanation: 'Crop removes unwanted edges.' },
+  { id: 'l6t4', topic: 'Thumbnails', type: 'mcq', question: 'A good thumbnail should be:', options: ['Clear and readable at small size', 'Tiny unreadable text', 'Pure noise', 'A blank image'], correctIndex: 0, explanation: 'Thumbnails must work when small.' },
+  { id: 'l6t5', topic: 'Social', type: 'mcq', question: 'Social creatives are often designed for:', options: ['Specific platform sizes', 'Only A4 print', 'Floppy disks', 'BIOS screens'], correctIndex: 0, explanation: 'Each platform prefers certain dimensions.' },
+  { id: 'l6t6', topic: 'Canva', type: 'mcq', question: 'Templates in Canva help you:', options: ['Start faster with layouts', 'Install drivers', 'Partition SSD', 'Write kernel code'], correctIndex: 0, explanation: 'Templates provide ready layouts.' },
+  { id: 'l6t7', topic: 'Photoshop', type: 'mcq', question: 'Resolution affects:', options: ['Image detail and print quality', 'Keyboard layout', 'Mouse DPI only', 'Wi-Fi channel'], correctIndex: 0, explanation: 'Higher resolution holds more detail.' },
+  { id: 'l6t8', topic: 'Editing', type: 'mcq', question: 'Exporting means:', options: ['Saving a shareable final file', 'Deleting layers forever only', 'Closing the laptop', 'Formatting RAM'], correctIndex: 0, explanation: 'Export produces the deliverable file.' },
+  { id: 'l6t9', topic: 'Thumbnails', type: 'mcq', question: 'High contrast in thumbnails helps with:', options: ['Visibility in feeds', 'Slower loading always', 'Hiding the title', 'Removing color'], correctIndex: 0, explanation: 'Contrast makes the image stand out.' },
+  { id: 'l6t10', topic: 'Social', type: 'mcq', question: 'Brand colors should be:', options: ['Consistent across posts', 'Random every time', 'Always neon only', 'Never repeated'], correctIndex: 0, explanation: 'Consistency builds recognition.' },
+]
+
+export const LEVEL7_QUESTIONS = [
+  { id: 'l7t1', topic: 'What is AI', type: 'mcq', question: 'AI systems often learn from:', options: ['Data and examples', 'Only random noise', 'Paper only', 'Empty folders'], correctIndex: 0, explanation: 'Training data teaches patterns.' },
+  { id: 'l7t2', topic: 'Chat tools', type: 'mcq', question: 'A chatbot is useful for:', options: ['Answering questions in text', 'Replacing the power supply', 'Cooling the CPU', 'Soldering boards'], correctIndex: 0, explanation: 'Chat tools handle conversational Q&A.' },
+  { id: 'l7t3', topic: 'AI media', type: 'mcq', question: 'Generative AI can create:', options: ['Images or text from prompts', 'Physical RAM sticks', 'HDMI cables', 'Only PDFs of blank pages'], correctIndex: 0, explanation: 'Prompts guide generated media.' },
+  { id: 'l7t4', topic: 'Writing tools', type: 'mcq', question: 'AI writing helpers can:', options: ['Draft and rephrase text', 'Install Windows', 'Repair fans', 'Replace SSDs'], correctIndex: 0, explanation: 'They assist with writing tasks.' },
+  { id: 'l7t5', topic: 'Prompts', type: 'mcq', question: 'A clear prompt should be:', options: ['Specific about the goal', 'Only one random word', 'Always empty', 'Only emoji'], correctIndex: 0, explanation: 'Specific prompts get better results.' },
+  { id: 'l7t6', topic: 'What is AI', type: 'mcq', question: 'Machine learning is a part of:', options: ['Artificial intelligence', 'Only printers', 'Only keyboards', 'Only power cables'], correctIndex: 0, explanation: 'ML is a major AI approach.' },
+  { id: 'l7t7', topic: 'Chat tools', type: 'mcq', question: 'You should verify important AI answers because:', options: ['Models can be wrong', 'AI is always perfect', 'AI never uses data', 'AI cannot output text'], correctIndex: 0, explanation: 'Critical facts need checking.' },
+  { id: 'l7t8', topic: 'AI media', type: 'mcq', question: 'Image generators need:', options: ['A descriptive prompt', 'A broken GPU always', 'No input', 'Only a blank page'], correctIndex: 0, explanation: 'Prompts describe the desired image.' },
+  { id: 'l7t9', topic: 'Writing tools', type: 'mcq', question: 'AI drafts should be:', options: ['Reviewed by you', 'Published without reading', 'Deleted always', 'Never edited'], correctIndex: 0, explanation: 'Human review keeps quality and accuracy.' },
+  { id: 'l7t10', topic: 'Prompts', type: 'mcq', question: 'Adding constraints to a prompt can:', options: ['Improve output fit', 'Always crash the PC', 'Erase the disk', 'Disable Wi-Fi'], correctIndex: 0, explanation: 'Constraints guide format and scope.' },
+]
+
+export const LEVEL8_QUESTIONS = [
+  { id: 'l8t1', topic: 'Programming', type: 'mcq', question: 'A program is:', options: ['A set of instructions', 'Only a photo', 'Only a cable', 'Only a monitor'], correctIndex: 0, explanation: 'Programs tell computers what to do.' },
+  { id: 'l8t2', topic: 'HTML', type: 'mcq', question: 'HTML is used to:', options: ['Structure web page content', 'Cool the CPU', 'Format hard disks', 'Replace RAM'], correctIndex: 0, explanation: 'HTML marks up page structure.' },
+  { id: 'l8t3', topic: 'CSS', type: 'mcq', question: 'CSS mainly controls:', options: ['Look and layout of pages', 'Power supply voltage', 'BIOS passwords', 'Fan speed only'], correctIndex: 0, explanation: 'CSS styles presentation.' },
+  { id: 'l8t4', topic: 'JavaScript', type: 'mcq', question: 'JavaScript in browsers can:', options: ['Make pages interactive', 'Replace the motherboard', 'Print circuit boards', 'Only store offline CDs'], correctIndex: 0, explanation: 'JS adds behavior to pages.' },
+  { id: 'l8t5', topic: 'Python', type: 'mcq', question: 'Python is popular for:', options: ['Readable general-purpose coding', 'Only soldering', 'Only HDMI', 'Only paper forms'], correctIndex: 0, explanation: 'Python is widely used and readable.' },
+  { id: 'l8t6', topic: 'Logic', type: 'mcq', question: 'An if-statement is used to:', options: ['Make decisions in code', 'Increase screen brightness', 'Charge batteries', 'Clean dust'], correctIndex: 0, explanation: 'Conditionals branch program flow.' },
+  { id: 'l8t7', topic: 'Programming', type: 'mcq', question: 'A bug is:', options: ['An error in the program', 'A hardware fan', 'A power cable', 'A monitor stand'], correctIndex: 0, explanation: 'Bugs are defects to fix.' },
+  { id: 'l8t8', topic: 'HTML', type: 'mcq', question: 'A hyperlink is created mainly with:', options: ['An anchor tag', 'A CPU socket', 'A heat sink', 'A power brick'], correctIndex: 0, explanation: 'Anchor tags define links.' },
+  { id: 'l8t9', topic: 'CSS', type: 'mcq', question: 'A CSS class can:', options: ['Style many elements the same way', 'Replace the OS kernel', 'Delete partitions', 'Change CPU cores'], correctIndex: 0, explanation: 'Classes reuse styles.' },
+  { id: 'l8t10', topic: 'JavaScript', type: 'mcq', question: 'A variable stores:', options: ['A value that can change', 'Only the PSU wattage', 'Only the case color', 'Only the desk height'], correctIndex: 0, explanation: 'Variables hold data in programs.' },
+  { id: 'l8t11', topic: 'Python', type: 'mcq', question: 'Indentation in Python is:', options: ['Part of the syntax', 'Never used', 'Only for comments', 'Only for filenames'], correctIndex: 0, explanation: 'Python uses indentation for blocks.' },
+  { id: 'l8t12', topic: 'Logic', type: 'mcq', question: 'A loop is used to:', options: ['Repeat actions', 'Turn off Wi-Fi only', 'Replace HDMI', 'Paint the case'], correctIndex: 0, explanation: 'Loops repeat instructions.' },
+]
+
+export const LEVEL9_QUESTIONS = [
+  { id: 'l9t1', topic: 'Networking', type: 'mcq', question: 'IP addresses help:', options: ['Identify devices on a network', 'Cool the GPU', 'Format Word docs', 'Change font size'], correctIndex: 0, explanation: 'IPs route traffic to devices.' },
+  { id: 'l9t2', topic: 'Databases', type: 'mcq', question: 'A database is used to:', options: ['Store structured data', 'Replace the monitor', 'Power the PSU', 'Only play audio'], correctIndex: 0, explanation: 'Databases organize stored data.' },
+  { id: 'l9t3', topic: 'Cloud', type: 'mcq', question: 'Cloud services provide:', options: ['On-demand computing over the internet', 'Only local floppy disks', 'Only CRT monitors', 'Only parallel ports'], correctIndex: 0, explanation: 'Cloud is internet-delivered IT resources.' },
+  { id: 'l9t4', topic: 'Cybersecurity', type: 'mcq', question: 'Encryption helps:', options: ['Protect data confidentiality', 'Increase mouse DPI', 'Sharpen photos only', 'Louder speakers'], correctIndex: 0, explanation: 'Encryption scrambles data for secrecy.' },
+  { id: 'l9t5', topic: 'Git', type: 'mcq', question: 'Git is mainly for:', options: ['Version control of code', 'Cooling laptops', 'Painting UI icons', 'Soldering USB'], correctIndex: 0, explanation: 'Git tracks code history.' },
+  { id: 'l9t6', topic: 'Web', type: 'mcq', question: 'HTTP is used to:', options: ['Transfer web page data', 'Replace RAM sticks', 'Cut Ethernet cables', 'Only print posters'], correctIndex: 0, explanation: 'HTTP is the web transfer protocol.' },
+  { id: 'l9t7', topic: 'Data', type: 'mcq', question: 'Data analysis often starts with:', options: ['Cleaning and exploring data', 'Throwing data away', 'Unplugging the router', 'Deleting spreadsheets'], correctIndex: 0, explanation: 'Clean data enables reliable analysis.' },
+  { id: 'l9t8', topic: 'Networking', type: 'mcq', question: 'A router typically:', options: ['Forwards traffic between networks', 'Replaces the keyboard', 'Prints documents', 'Scans only photos'], correctIndex: 0, explanation: 'Routers connect networks.' },
+  { id: 'l9t9', topic: 'Databases', type: 'mcq', question: 'SQL is commonly used to:', options: ['Query relational databases', 'Overclock CPUs', 'Paint 3D models', 'Tune guitar strings'], correctIndex: 0, explanation: 'SQL queries structured tables.' },
+  { id: 'l9t10', topic: 'Cloud', type: 'mcq', question: 'Scalability means a system can:', options: ['Grow with demand', 'Never change', 'Only shrink', 'Only run offline'], correctIndex: 0, explanation: 'Scalable systems handle growth.' },
+  { id: 'l9t11', topic: 'Cybersecurity', type: 'mcq', question: 'A firewall helps by:', options: ['Filtering network traffic', 'Heating the room', 'Replacing antivirus always', 'Deleting all files'], correctIndex: 0, explanation: 'Firewalls control allowed traffic.' },
+  { id: 'l9t12', topic: 'Git', type: 'mcq', question: 'A commit records:', options: ['A snapshot of changes', 'Only the desktop wallpaper', 'Only the mouse brand', 'Only the chair height'], correctIndex: 0, explanation: 'Commits save project history points.' },
+]
