@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-10T16:35:47.187Z",
+  "updated_at": "2026-10-10T16:52:37.032Z",
   "byUserId": {
     "usr_muxyrv62_ab4c1352": {
       "user_id": "usr_muxyrv62_ab4c1352",
@@ -100,6 +100,16 @@
       "source": "purchase:plan-6m",
       "plan_id": "plan-6m",
       "updated_at": "2026-10-10T16:35:47.187Z"
+    },
+    "usr_mv2mu7va_b5c2182e": {
+      "user_id": "usr_mv2mu7va_b5c2182e",
+      "email": "coldpath_1791651156@test.local",
+      "status": "active",
+      "start_at": "2026-10-10T16:52:37.032Z",
+      "expires_at": "2027-04-10T16:52:37.032Z",
+      "source": "purchase:plan-6m",
+      "plan_id": "plan-6m",
+      "updated_at": "2026-10-10T16:52:37.032Z"
     }
   }
 }
