@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-11T09:38:55.424Z",
+  "updated_at": "2026-10-11T09:39:40.509Z",
   "byId": {
     "CQ-SCMD-620D-1308": {
       "id": "CQ-SCMD-620D-1308",
@@ -10,9 +10,20 @@
       "status": "valid",
       "snapshot_json": "{\"lessonsDone\":57,\"lessonsTotal\":57,\"practiceCount\":8,\"revisionCount\":10,\"testsPassed\":9,\"gamesPlayed\":2,\"minPractice\":8,\"minRevision\":10,\"minPassedTests\":9,\"minGames\":2}",
       "updated_at": "2026-10-11T09:38:55.424Z"
+    },
+    "CQ-TBEW-BBEC-133F": {
+      "id": "CQ-TBEW-BBEC-133F",
+      "user_id": "usr_mv3mt8on_435d7800",
+      "student_name": "Cert Durability Tester",
+      "course_name": "Computer Quest",
+      "completed_at": "2026-10-11T09:39:40.424Z",
+      "status": "valid",
+      "snapshot_json": "{\"lessonsDone\":57,\"lessonsTotal\":57,\"practiceCount\":8,\"revisionCount\":10,\"testsPassed\":9,\"gamesPlayed\":2,\"minPractice\":8,\"minRevision\":10,\"minPassedTests\":9,\"minGames\":2}",
+      "updated_at": "2026-10-11T09:39:40.509Z"
     }
   },
   "byUserId": {
-    "usr_mv3ms9xb_a6b68603": "CQ-SCMD-620D-1308"
+    "usr_mv3ms9xb_a6b68603": "CQ-SCMD-620D-1308",
+    "usr_mv3mt8on_435d7800": "CQ-TBEW-BBEC-133F"
   }
 }
