@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-11T09:38:52.104Z",
+  "updated_at": "2026-10-11T09:39:37.168Z",
   "byUserId": {
     "usr_mv2nhoru_91e24939": {
       "id": "usr_mv2nhoru_91e24939",
@@ -27,6 +27,15 @@
       "role": "student",
       "created_at": "2026-10-11T09:38:52.011Z",
       "updated_at": "2026-10-11T09:38:52.104Z"
+    },
+    "usr_mv3mt8on_435d7800": {
+      "id": "usr_mv3mt8on_435d7800",
+      "email": "cert_dur_1791711576@cq-test.local",
+      "name": "Cert Durability Tester",
+      "password_hash": "$2a$10$uI/blTquzxThqdFawbpmGeASlEEmvmdIV8u5Gc8VjdbAngVk3DaXq",
+      "role": "student",
+      "created_at": "2026-10-11T09:39:37.077Z",
+      "updated_at": "2026-10-11T09:39:37.168Z"
     }
   }
 }
