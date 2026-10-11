@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-11T09:38:54.271Z",
+  "updated_at": "2026-10-11T09:39:39.407Z",
   "byUserId": {
     "usr_mv2lscc2_15b4c9b8": {
       "xp": 30,
@@ -556,6 +556,164 @@
       },
       "user_id": "usr_mv3ms9xb_a6b68603",
       "updated_at": "2026-10-11T09:38:54.271Z"
+    },
+    "usr_mv3mt8on_435d7800": {
+      "xp": 500,
+      "level": 3,
+      "streak": 1,
+      "lastActiveDate": "2026-10-11",
+      "completedLessons": [
+        "l1-1",
+        "l1-2",
+        "l1-3",
+        "l1-4",
+        "l1-5",
+        "l1-6",
+        "l1-7",
+        "l1-8",
+        "l1-9",
+        "l1-10",
+        "l1-11",
+        "l2-1",
+        "l2-2",
+        "l2-3",
+        "l2-4",
+        "l2-5",
+        "l3-1",
+        "l3-2",
+        "l3-3",
+        "l3-4",
+        "l3-5",
+        "l3-6",
+        "l3-7",
+        "l4-1",
+        "l4-2",
+        "l4-3",
+        "l4-4",
+        "l4-5",
+        "l5-1",
+        "l5-2",
+        "l5-3",
+        "l5-4",
+        "l5-5",
+        "l6-1",
+        "l6-2",
+        "l6-3",
+        "l6-4",
+        "l6-5",
+        "l7-1",
+        "l7-2",
+        "l7-3",
+        "l7-4",
+        "l7-5",
+        "l8-1",
+        "l8-2",
+        "l8-3",
+        "l8-4",
+        "l8-5",
+        "l8-6",
+        "l8-7",
+        "l9-1",
+        "l9-2",
+        "l9-3",
+        "l9-4",
+        "l9-5",
+        "l9-6",
+        "l9-7"
+      ],
+      "lessonScores": {},
+      "practiceCompleted": [
+        "p1",
+        "p2",
+        "p3",
+        "p4",
+        "p5",
+        "p6",
+        "p7",
+        "p8"
+      ],
+      "practiceScores": {},
+      "gamesPlayed": {
+        "g1": 1,
+        "g2": 1
+      },
+      "testScores": {
+        "level1-basics": {
+          "passed": true,
+          "accuracy": 80,
+          "bestScore": 8,
+          "total": 10
+        },
+        "level2-typing": {
+          "passed": true,
+          "accuracy": 80,
+          "bestScore": 8,
+          "total": 10
+        },
+        "level3-office": {
+          "passed": true,
+          "accuracy": 80,
+          "bestScore": 8,
+          "total": 10
+        },
+        "level4-internet": {
+          "passed": true,
+          "accuracy": 80,
+          "bestScore": 8,
+          "total": 10
+        },
+        "level5-security": {
+          "passed": true,
+          "accuracy": 80,
+          "bestScore": 8,
+          "total": 10
+        },
+        "level6-design": {
+          "passed": true,
+          "accuracy": 80,
+          "bestScore": 8,
+          "total": 10
+        },
+        "level7-ai": {
+          "passed": true,
+          "accuracy": 80,
+          "bestScore": 8,
+          "total": 10
+        },
+        "level8-programming": {
+          "passed": true,
+          "accuracy": 80,
+          "bestScore": 8,
+          "total": 10
+        },
+        "level9-advanced": {
+          "passed": true,
+          "accuracy": 80,
+          "bestScore": 8,
+          "total": 10
+        }
+      },
+      "revisionScores": {},
+      "revisionCompleted": [
+        "r1",
+        "r2",
+        "r3",
+        "r4",
+        "r5",
+        "r6",
+        "r7",
+        "r8",
+        "r9",
+        "r10"
+      ],
+      "achievements": [],
+      "weakTopics": [],
+      "strongTopics": [],
+      "settings": {
+        "language": "en"
+      },
+      "user_id": "usr_mv3mt8on_435d7800",
+      "updated_at": "2026-10-11T09:39:39.407Z"
     }
   }
 }
