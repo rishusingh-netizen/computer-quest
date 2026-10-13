@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-11T09:39:37.168Z",
+  "updated_at": "2026-10-13T09:48:32.763Z",
   "byUserId": {
     "usr_mv2nhoru_91e24939": {
       "id": "usr_mv2nhoru_91e24939",
@@ -36,6 +36,15 @@
       "role": "student",
       "created_at": "2026-10-11T09:39:37.077Z",
       "updated_at": "2026-10-11T09:39:37.168Z"
+    },
+    "usr_mv6i0f9t_cec261e9": {
+      "id": "usr_mv6i0f9t_cec261e9",
+      "email": "l7audit1791884912@test.local",
+      "name": "L7 Audit",
+      "password_hash": "$2a$10$LgTSIIEpKIBZ2WO1QcDRDeQTP.39JOChSop/sACq.fUKI2zHtczpe",
+      "role": "student",
+      "created_at": "2026-10-13T09:48:32.638Z",
+      "updated_at": "2026-10-13T09:48:32.763Z"
     }
   }
 }
