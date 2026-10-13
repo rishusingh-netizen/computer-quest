@@ -1,8 +1,8 @@
 /**
  * Computer Quest – Curriculum levels (data-driven).
- * Levels 1–6 are live (full lesson content). Levels 7–9 are visible roadmap only
+ * Levels 1–7 are live (full lesson content). Levels 8–9 are visible roadmap only
  * (available: false) until full interactive lessons ship.
- * Level 6 (Design & Creative Tools) shipped with full lessons.
+ * Level 7 (AI Tools) shipped with full lessons and restored MiniQuiz options.
  */
 
 export const LEVELS = [
@@ -110,7 +110,7 @@ export const LEVELS = [
     description: 'ChatGPT, Gemini, AI image/video, prompt writing, productivity.',
     icon: 'Sparkles',
     color: '#ec4899',
-    available: false,
+    available: true,
     lessons: [
       { id: 'l7-1', title: 'What is AI?', duration: '8 min', xp: 20 },
       { id: 'l7-2', title: 'ChatGPT & Gemini', duration: '12 min', xp: 30 },
