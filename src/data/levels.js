@@ -1,8 +1,8 @@
 /**
  * Computer Quest – Curriculum levels (data-driven).
- * Levels 1–7 are live (full lesson content). Levels 8–9 are visible roadmap only
+ * Levels 1–8 are live (full lesson content). Level 9 is visible roadmap only
  * (available: false) until full interactive lessons ship.
- * Level 7 (AI Tools) shipped with full lessons and restored MiniQuiz options.
+ * Level 8 (Programming Basics) shipped with full lessons and restored MiniQuiz options.
  */
 
 export const LEVELS = [
@@ -125,7 +125,7 @@ export const LEVELS = [
     description: 'HTML, CSS, JavaScript, Python – variables, conditions, loops, functions.',
     icon: 'Code',
     color: '#06b6d4',
-    available: false,
+    available: true,
     lessons: [
       { id: 'l8-1', title: 'What is Programming?', duration: '10 min', xp: 25 },
       { id: 'l8-2', title: 'HTML Basics', duration: '15 min', xp: 35 },
