@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-13T09:51:26.077Z",
+  "updated_at": "2026-10-13T09:51:31.287Z",
   "byUserId": {
     "usr_mv2lscc2_15b4c9b8": {
       "xp": 30,
@@ -716,16 +716,22 @@
       "updated_at": "2026-10-11T09:39:39.407Z"
     },
     "usr_mv6i0f9t_cec261e9": {
-      "xp": 20,
+      "xp": 50,
       "level": 1,
       "streak": 1,
       "lastActiveDate": "2026-10-13",
       "completedLessons": [
-        "l7-1"
+        "l7-1",
+        "l7-2"
       ],
       "lessonScores": {
         "l7-1": {
           "score": 3,
+          "total": 3,
+          "date": "2026-10-13"
+        },
+        "l7-2": {
+          "score": 0,
           "total": 3,
           "date": "2026-10-13"
         }
@@ -743,7 +749,7 @@
         "language": "en"
       },
       "user_id": "usr_mv6i0f9t_cec261e9",
-      "updated_at": "2026-10-13T09:51:26.077Z"
+      "updated_at": "2026-10-13T09:51:31.287Z"
     }
   }
 }
