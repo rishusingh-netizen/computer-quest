@@ -37,13 +37,14 @@ export const COURSE = {
   ],
 }
 
-/** Payment mode: mock until real provider credentials are configured server-side */
+/** Payment provider metadata (client display only — secrets stay on the server). */
 export const PAYMENT_CONFIG = {
-  mode: 'mock',
-  provider: 'mock-gateway',
+  mode: 'razorpay',
+  provider: 'razorpay',
   currency: 'INR',
+  methods: ['upi'],
   note:
-    'MOCK payment for development. Amount is always taken from the server course_config price so a real gateway can use the same value later.',
+    'Pay with UPI via Razorpay. Amount is always taken from the server plan price. Membership activates only after server-side verification.',
 }
 
 export function formatPrice(amount, currency = 'INR') {
