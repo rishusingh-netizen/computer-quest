@@ -44,7 +44,7 @@ const COMPONENT_MAP = {
 
 export default function PracticeLab() {
   const { activityId } = useParams()
-  const { isPracticeCompleted, completePractice } = useProgress()
+  const { isPracticeCompleted } = useProgress()
 
   if (activityId) {
     const activity = getActivityById(activityId)
@@ -58,12 +58,14 @@ export default function PracticeLab() {
       )
     }
     return (
-      <PracticeShell
-        activity={activity}
-        completed={isPracticeCompleted(activityId)}
-        onComplete={(score, total, xp) => completePractice(activityId, score, total, xp)}
-      >
-        {Comp ? <Comp activity={activity} /> : <p className="text-sm text-muted">Practice module loading…</p>}
+      <PracticeShell activity={activity}>
+        {({ onComplete }) =>
+          Comp ? (
+            <Comp activity={activity} onComplete={onComplete} />
+          ) : (
+            <p className="text-sm text-muted">Practice module loading…</p>
+          )
+        }
       </PracticeShell>
     )
   }
