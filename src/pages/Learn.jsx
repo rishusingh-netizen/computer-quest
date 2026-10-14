@@ -166,9 +166,8 @@ export default function Learn() {
           </div>
           <h2>Lesson coming soon</h2>
           <p>
-            Full interactive content for this lesson is not available yet. Levels 1–8
-            (Basics through Programming Basics) are live now.
-            Level 9 is listed as a roadmap and will unlock when content is ready.
+            Full interactive content for this lesson is not available yet. Levels 1–9
+            are live with full interactive lessons.
           </p>
           <Link to="/learn" className="btn btn-primary">
             Back to Learn
@@ -194,7 +193,7 @@ export default function Learn() {
         <div>
           <h2 className="learn-hello">Welcome back, {firstName}!</h2>
           <p className="text-muted text-sm mt-1">
-            Levels 1–8 are live. Level 9 is on the roadmap (Coming soon).
+            Levels 1–9 are live with full interactive lessons.
           </p>
         </div>
         <div className="learn-stat-row">
@@ -235,7 +234,7 @@ export default function Learn() {
               <>
                 <h3 className="card-title">You finished all live lessons</h3>
                 <p className="text-sm text-muted mt-1">
-                  Practice Lab, Game Zone, tests and revision are still available. Level 9 will unlock when published.
+                  Practice Lab, Game Zone, tests and revision are still available.
                 </p>
               </>
             ) : (
@@ -340,8 +339,8 @@ export default function Learn() {
           </Link>
           <Link to="/revision" className="card learn-quick-card">
             <RefreshCw size={22} color="#f59e0b" aria-hidden="true" />
-            <span className="text-sm text-muted">Weak topics</span>
             <span className="font-semibold">Revision</span>
+            <span className="text-sm text-muted">Weak topics</span>
           </Link>
           <Link to="/ai-tutor" className="card learn-quick-card">
             <Bot size={22} color="#8b5cf6" aria-hidden="true" />
@@ -354,7 +353,7 @@ export default function Learn() {
       <div className="mb-2">
         <h3 className="card-title mb-1">Course structure</h3>
         <p className="text-sm text-muted mb-3">
-          {COURSE.name} · {LEVELS.length} levels · {getTotalLessons()} lessons (Levels 1–8 live)
+          {COURSE.name} · {LEVELS.length} levels · {getTotalLessons()} lessons (Levels 1–9 live)
         </p>
       </div>
 
