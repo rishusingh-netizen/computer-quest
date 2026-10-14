@@ -17,9 +17,7 @@ function resolveApiBase() {
   if (env !== undefined && env !== null && String(env).trim().length > 0) {
     return String(env).trim().replace(/\/$/, '')
   }
-  // Local Vite dev → local Express
   if (import.meta.env.DEV) return 'http://127.0.0.1:3001'
-  // Production: same-origin /api (works on computer-quest.vercel.app and custom domains)
   if (typeof window !== 'undefined' && window.location?.origin) {
     return window.location.origin
   }
@@ -29,22 +27,14 @@ function resolveApiBase() {
 const API_BASE = resolveApiBase()
 const TOKEN_KEY = 'cq_api_token'
 
-/**
- * Read JWT from durable storage (localStorage).
- * One-time migrate: if an older tab still has the token only in sessionStorage,
- * copy it to localStorage so closing the browser does not drop the session.
- */
 export function getToken() {
   try {
     let token = localStorage.getItem(TOKEN_KEY)
     if (token) return token
-    // Migrate from sessionStorage (previous implementation)
     const legacy = sessionStorage.getItem(TOKEN_KEY)
     if (legacy) {
       localStorage.setItem(TOKEN_KEY, legacy)
-      try {
-        sessionStorage.removeItem(TOKEN_KEY)
-      } catch {}
+      try { sessionStorage.removeItem(TOKEN_KEY) } catch {}
       return legacy
     }
     return null
@@ -57,15 +47,10 @@ export function setToken(token) {
   try {
     if (token) {
       localStorage.setItem(TOKEN_KEY, token)
-      // Clear any leftover sessionStorage copy
-      try {
-        sessionStorage.removeItem(TOKEN_KEY)
-      } catch {}
+      try { sessionStorage.removeItem(TOKEN_KEY) } catch {}
     } else {
       localStorage.removeItem(TOKEN_KEY)
-      try {
-        sessionStorage.removeItem(TOKEN_KEY)
-      } catch {}
+      try { sessionStorage.removeItem(TOKEN_KEY) } catch {}
     }
   } catch {}
 }
@@ -107,10 +92,11 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(body || {}),
     }),
-  confirmPayment: (orderId, mockResult) =>
+  /** payload: razorpay fields, or { cancelled: true } / { failed: true } */
+  confirmPayment: (orderId, payload = {}) =>
     request('/api/payments/confirm', {
       method: 'POST',
-      body: JSON.stringify({ orderId, mockResult }),
+      body: JSON.stringify({ orderId, ...(payload && typeof payload === 'object' ? payload : {}) }),
     }),
   completionStatus: () => request('/api/completion/status'),
   issueCertificate: () => request('/api/certificates/issue', { method: 'POST', body: '{}' }),
