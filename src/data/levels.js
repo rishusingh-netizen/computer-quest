@@ -1,8 +1,7 @@
 /**
  * Computer Quest – Curriculum levels (data-driven).
- * Levels 1–8 are live (full lesson content). Level 9 is visible roadmap only
- * (available: false) until full interactive lessons ship.
- * Level 8 (Programming Basics) shipped with full lessons and restored MiniQuiz options.
+ * Levels 1–9 are live (full lesson content).
+ * Level 9 (Advanced Computer Skills) shipped with full lessons and restored MiniQuiz options.
  */
 
 export const LEVELS = [
@@ -142,7 +141,7 @@ export const LEVELS = [
     description: 'Networking, databases, SQL, cloud, cybersecurity, Git, web development.',
     icon: 'Cpu',
     color: '#64748b',
-    available: false,
+    available: true,
     lessons: [
       { id: 'l9-1', title: 'Computer Networking', duration: '15 min', xp: 35 },
       { id: 'l9-2', title: 'Databases & SQL', duration: '18 min', xp: 40 },
