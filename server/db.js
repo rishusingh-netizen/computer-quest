@@ -120,14 +120,25 @@ function runRun(sql, params) {
   const data = readAll()
   const s = sql.replace(/\s+/g, ' ').trim()
   if (s.startsWith('INSERT INTO users')) {
-    const role = s.includes("'admin'") ? 'admin' : 'student'
+    // Two call shapes:
+    // 1) role literal in SQL: params = [id, email, name, password_hash, created_at]
+    // 2) role bound:         params = [id, email, name, password_hash, role, created_at]
+    let role
+    let created_at
+    if (params.length >= 6) {
+      role = params[4] || (s.includes("'admin'") ? 'admin' : 'student')
+      created_at = params[5] || new Date().toISOString()
+    } else {
+      role = s.includes("'admin'") ? 'admin' : 'student'
+      created_at = params[4] || new Date().toISOString()
+    }
     const row = {
       id: params[0],
       email: params[1],
       name: params[2],
       password_hash: params[3],
       role,
-      created_at: params[4],
+      created_at,
     }
     const byId = data.users.findIndex((u) => u.id === row.id)
     if (byId >= 0) {
@@ -142,6 +153,7 @@ function runRun(sql, params) {
           name: row.name,
           password_hash: row.password_hash || data.users[byEmail].password_hash,
           role: row.role,
+          created_at: row.created_at || data.users[byEmail].created_at,
         }
       } else {
         data.users.push(row)
@@ -163,10 +175,6 @@ function runRun(sql, params) {
     writeAll(data)
     return { changes: 1 }
   }
-  // Purchase / plan membership with optional plan_id (params may include plan_id)
-  // SQL shape from index.js:
-  //   INSERT ... VALUES (?, 'active', ?, ?, ?, ?, ?)
-  //   (?, start, end, source, updated, plan_id)
   if (s.includes('INSERT INTO memberships') && s.includes('ON CONFLICT')) {
     let source = params[3]
     let planId = null
@@ -176,7 +184,6 @@ function runRun(sql, params) {
       updatedAt = params[4]
       planId = params[5] || null
     } else if (params.length === 5) {
-      // legacy: source may be purchase:planId
       if (String(source).startsWith('purchase:')) planId = String(source).slice('purchase:'.length)
     }
     const next = {
@@ -241,7 +248,6 @@ function runRun(sql, params) {
     return { changes: 1 }
   }
   if (s.startsWith('INSERT INTO orders')) {
-    // Supports both legacy (5 params after id) and plan_id (6th value)
     data.orders.push({
       id: params[0],
       user_id: params[1],
