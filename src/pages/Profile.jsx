@@ -7,6 +7,13 @@ import { api } from '../services/api'
 import { evaluateCompletion } from '../services/completion'
 import { useProgress } from '../context/ProgressContext'
 
+function formatAccountDate(value) {
+  if (!value) return '—'
+  const d = new Date(value)
+  if (Number.isNaN(d.getTime())) return '—'
+  return d.toLocaleDateString('en-IN')
+}
+
 function ProfileInner() {
   const { user, hasAccess, accessDaysLeft, logout } = useAuth()
   const progress = useProgress()
@@ -34,9 +41,7 @@ function ProfileInner() {
           <strong>{user.name}</strong>
         </p>
         <p className="text-sm text-muted">{user.email}</p>
-        <p className="text-sm text-muted">
-          Account created: {user.createdAt ? new Date(user.createdAt).toLocaleDateString('en-IN') : '—'}
-        </p>
+        <p className="text-sm text-muted">Account created: {formatAccountDate(user.createdAt)}</p>
         <button type="button" className="btn btn-secondary btn-sm mt-3" onClick={logout}>
           Log out
         </button>
