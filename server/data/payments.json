@@ -1,5 +1,27 @@
 {
-  "updated_at": "2026-10-15T00:00:00.000Z",
-  "byId": {},
+  "updated_at": "2026-10-15T10:01:46.189Z",
+  "byId": {
+    "CQ-YNQWSUKT": {
+      "id": "CQ-YNQWSUKT",
+      "user_id": "usr_mv9dd3l0_6209ed97",
+      "user_email": "upitest1792058503@test.local",
+      "user_name": "UPI Test",
+      "plan_id": "plan-6m",
+      "plan_name": "6 Months – Essential",
+      "amount_paise": 19900,
+      "amount_inr": 199,
+      "duration_days": 182,
+      "status": "PENDING",
+      "utr": null,
+      "paid_at": null,
+      "submitted_at": null,
+      "verified_at": null,
+      "verified_by": null,
+      "reject_reason": null,
+      "provider": "direct_upi",
+      "created_at": "2026-10-15T10:01:46.030Z",
+      "updated_at": "2026-10-15T10:01:46.189Z"
+    }
+  },
   "utrIndex": {}
 }
