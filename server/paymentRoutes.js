@@ -21,6 +21,7 @@ import {
   listOrders,
   listOrdersForUser,
 } from './paymentStore.js'
+import { sendPaymentSubmissionEmail } from './emailNotify.js'
 
 function orderRef() {
   const part = () => Math.random().toString(36).slice(2, 6).toUpperCase()
@@ -219,6 +220,10 @@ export function createPaymentRouter({ getConfig, uid }) {
         reject_reason: null,
         updated_at: now,
       }
+
+      const alreadyNotified = Boolean(order.notification_sent_at)
+      const wasAlreadySubmitted = order.status === 'SUBMITTED' && order.utr === updated.utr
+
       const saved = await savePayment(updated)
 
       try {
@@ -231,11 +236,29 @@ export function createPaymentRouter({ getConfig, uid }) {
         /* ignore */
       }
 
+      if (!alreadyNotified && !wasAlreadySubmitted) {
+        try {
+          const mail = await sendPaymentSubmissionEmail(saved.order || updated)
+          if (mail.ok) {
+            try {
+              await savePayment({
+                ...(saved.order || updated),
+                notification_sent_at: new Date().toISOString(),
+              })
+            } catch {
+              /* ignore stamp failure */
+            }
+          }
+        } catch (e) {
+          console.warn('[cq-payments] email notify', e.message || e)
+        }
+      }
+
       res.json({
         ok: true,
         order: publicOrder(saved.order || updated),
         message:
-          'Payment details submitted. Your course access will be activated after admin verifies the UTR.',
+          'Payment details submitted successfully. We will verify your payment and activate your course access after confirmation.',
       })
     } catch (e) {
       console.error(e)
