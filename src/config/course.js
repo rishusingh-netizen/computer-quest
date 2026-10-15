@@ -1,7 +1,6 @@
 /**
  * Course metadata defaults (name, modules, includes).
  * Active price is owned by the server (course_config) and edited in Admin → Courses.
- * Do not treat COURSE.price as the live price — use getCourseConfig() / api.course().
  */
 
 export const COURSE = {
@@ -13,7 +12,6 @@ export const COURSE = {
     'A complete interactive course for school, college and beginner students: lessons, practice labs, skill games, tests, smart revision and Quest Helper.',
   durationYears: 2,
   currency: 'INR',
-  /** Fallback only when API is unreachable — not the admin source of truth */
   price: null,
   priceLabel: null,
   includes: [
@@ -37,14 +35,14 @@ export const COURSE = {
   ],
 }
 
-/** Payment provider metadata (client display only — secrets stay on the server). */
+/** Payment: direct UPI ID/QR — membership only after admin verifies UTR. */
 export const PAYMENT_CONFIG = {
-  mode: 'razorpay',
-  provider: 'razorpay',
+  mode: 'direct_upi',
+  provider: 'direct_upi',
   currency: 'INR',
   methods: ['upi'],
   note:
-    'Pay with UPI via Razorpay. Amount is always taken from the server plan price. Membership activates only after server-side verification.',
+    'Pay directly via UPI (UPI ID / QR). Amount comes from the server plan price. Membership activates only after admin verifies your UTR.',
 }
 
 export function formatPrice(amount, currency = 'INR') {
