@@ -1,15 +1,7 @@
 /**
  * API client for Computer Quest backend.
- *
- * Auth token: JWT only (never password). Stored in localStorage so the session
- * survives tab close and browser restart. Server JWT expiry is 14 days
- * (see server/auth.js JWT_DAYS). Logout always clears the token.
- *
- * Production API (live): https://computer-quest.vercel.app
- * Paths are always /api/...
  */
 
-/** Live production API origin — real public HTTPS, not a placeholder */
 export const PRODUCTION_API_ORIGIN = 'https://computer-quest.vercel.app'
 
 function resolveApiBase() {
@@ -92,11 +84,35 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(body || {}),
     }),
-  /** payload: razorpay fields, or { cancelled: true } / { failed: true } */
+  submitPayment: (body = {}) =>
+    request('/api/payments/submit', {
+      method: 'POST',
+      body: JSON.stringify(body || {}),
+    }),
+  myPayments: () => request('/api/payments/mine'),
+  cancelPayment: (orderId) =>
+    request('/api/payments/cancel', {
+      method: 'POST',
+      body: JSON.stringify({ orderId }),
+    }),
+  upiConfig: () => request('/api/payments/upi-config'),
+  /** Legacy — auto/mock confirm disabled on server */
   confirmPayment: (orderId, payload = {}) =>
     request('/api/payments/confirm', {
       method: 'POST',
       body: JSON.stringify({ orderId, ...(payload && typeof payload === 'object' ? payload : {}) }),
+    }),
+  adminPayments: (status) =>
+    request('/api/payments/admin/list' + (status ? `?status=${encodeURIComponent(status)}` : '')),
+  adminVerifyPayment: (orderId) =>
+    request('/api/payments/admin/verify', {
+      method: 'POST',
+      body: JSON.stringify({ orderId }),
+    }),
+  adminRejectPayment: (orderId, reason) =>
+    request('/api/payments/admin/reject', {
+      method: 'POST',
+      body: JSON.stringify({ orderId, reason }),
     }),
   completionStatus: () => request('/api/completion/status'),
   issueCertificate: () => request('/api/certificates/issue', { method: 'POST', body: '{}' }),
