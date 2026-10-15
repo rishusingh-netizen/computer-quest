@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-15T10:01:46.189Z",
+  "updated_at": "2026-10-15T10:01:47.470Z",
   "byId": {
     "CQ-YNQWSUKT": {
       "id": "CQ-YNQWSUKT",
@@ -11,17 +11,20 @@
       "amount_paise": 19900,
       "amount_inr": 199,
       "duration_days": 182,
-      "status": "PENDING",
-      "utr": null,
-      "paid_at": null,
-      "submitted_at": null,
+      "status": "SUBMITTED",
+      "utr": "UTRTEST999888",
+      "paid_at": "2026-10-15T10:01:47.347Z",
+      "submitted_at": "2026-10-15T10:01:47.347Z",
       "verified_at": null,
       "verified_by": null,
       "reject_reason": null,
       "provider": "direct_upi",
       "created_at": "2026-10-15T10:01:46.030Z",
-      "updated_at": "2026-10-15T10:01:46.189Z"
+      "updated_at": "2026-10-15T10:01:47.470Z",
+      "note": null
     }
   },
-  "utrIndex": {}
+  "utrIndex": {
+    "UTRTEST999888": "CQ-YNQWSUKT"
+  }
 }
