@@ -1,0 +1,6 @@
+{
+  "upiId": "[MY_UPI_ID]",
+  "displayName": "[MY_DISPLAY_NAME]",
+  "qrImageUrl": "[MY_UPI_QR_IMAGE]",
+  "note": "Replace placeholders via env CQ_UPI_ID, CQ_UPI_DISPLAY_NAME, CQ_UPI_QR_IMAGE or edit this file. No API secrets required for direct UPI."
+}
