@@ -1,23 +1,51 @@
+/**
+ * Direct UPI payment routes (no payment gateway).
+ * Flow: create PENDING order → student pays via UPI → submit UTR → admin VERIFY → membership.
+ */
 import express from 'express'
 import { db } from './db.js'
 import {
   authMiddleware,
-  signToken,
-  publicUser,
+  adminMiddleware,
   getMembership,
   membershipPublic,
-  hydrateMembershipFromDurable,
   persistMembership,
 } from './auth.js'
 import { findPlan } from './courseConfigStore.js'
+import { getUpiConfig, buildUpiDeepLink, resolveQrImageUrl } from './upiConfig.js'
 import {
-  getRazorpayConfig,
-  createRazorpayOrder,
-  verifyCheckoutSignature,
-  fetchRazorpayPayment,
-  verifyWebhookSignature,
-  isPaidPaymentStatus,
-} from './razorpay.js'
+  loadPaymentsDoc,
+  savePayment,
+  findOrderById,
+  findOrderByUtr,
+  listOrders,
+  listOrdersForUser,
+} from './paymentStore.js'
+
+function orderRef() {
+  const part = () => Math.random().toString(36).slice(2, 6).toUpperCase()
+  return `CQ-${part()}${part()}`
+}
+
+function publicOrder(o) {
+  if (!o) return null
+  return {
+    id: o.id,
+    status: o.status,
+    planId: o.plan_id,
+    planName: o.plan_name,
+    amountPaise: o.amount_paise,
+    amountInr: o.amount_inr,
+    currency: 'INR',
+    utr: o.utr || null,
+    paidAt: o.paid_at || null,
+    submittedAt: o.submitted_at || null,
+    verifiedAt: o.verified_at || null,
+    rejectReason: o.reject_reason || null,
+    createdAt: o.created_at,
+    updatedAt: o.updated_at,
+  }
+}
 
 export function createPaymentRouter({ getConfig, uid }) {
   const router = express.Router()
@@ -50,92 +78,23 @@ export function createPaymentRouter({ getConfig, uid }) {
     return { user: u, mem: persisted.row || getMembership(u.id), persisted, durationDays, planId }
   }
 
-  async function fulfillPaidOrderFromPayment(payment) {
-    const notes = payment?.notes || {}
-    const localOrderId = notes.local_order_id || notes.localOrderId
-    if (!localOrderId) return { status: 'order_not_found' }
-    const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(localOrderId)
-    if (!order) return { status: 'order_not_found' }
-    if (order.status === 'paid') return { status: 'already_paid', orderId: order.id }
-    const amountOk = Number(payment.amount) === Number(order.amount_paise)
-    const currencyOk = String(payment.currency || 'INR').toUpperCase() === 'INR'
-    if (!amountOk || !currencyOk || !isPaidPaymentStatus(payment.status)) {
-      return {
-        status: 'rejected',
-        reason: !amountOk ? 'amount_mismatch' : !currencyOk ? 'currency_mismatch' : 'status',
-      }
-    }
-    const now = new Date().toISOString()
-    const ref = `${payment.order_id || ''}:${payment.id || ''}`
-    db.prepare(`UPDATE orders SET status = 'paid', provider_ref = ?, updated_at = ? WHERE id = ?`).run(
-      ref,
-      now,
-      order.id
-    )
-    const user = db.prepare('SELECT * FROM users WHERE id = ?').get(order.user_id)
-    if (!user) return { status: 'user_not_found', orderId: order.id }
-    await activateMembershipForOrder(order, user)
-    return { status: 'paid', orderId: order.id }
-  }
-
-  router.post(
-    '/razorpay-webhook',
-    express.raw({ type: 'application/json' }),
-    async (req, res) => {
-      try {
-        const signature = req.headers['x-razorpay-signature']
-        const raw =
-          Buffer.isBuffer(req.body)
-            ? req.body.toString('utf8')
-            : typeof req.body === 'string'
-              ? req.body
-              : ''
-        if (!verifyWebhookSignature(raw, signature)) {
-          return res.status(400).json({ ok: false, error: 'Invalid webhook signature' })
-        }
-        let event
-        try {
-          event = JSON.parse(raw || '{}')
-        } catch {
-          return res.status(400).json({ ok: false, error: 'Invalid JSON' })
-        }
-        const eventName = event?.event || ''
-        const payment = event?.payload?.payment?.entity
-        if (!payment) return res.json({ ok: true, ignored: true })
-        if (eventName === 'payment.failed') {
-          const localId = payment.notes?.local_order_id
-          if (localId) {
-            const now = new Date().toISOString()
-            const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(localId)
-            if (order && order.status === 'created') {
-              db.prepare(`UPDATE orders SET status = 'failed', updated_at = ? WHERE id = ?`).run(now, localId)
-            }
-          }
-          return res.json({ ok: true, status: 'failed' })
-        }
-        if (eventName !== 'payment.captured' && eventName !== 'payment.authorized') {
-          return res.json({ ok: true, ignored: true, event: eventName })
-        }
-        const result = await fulfillPaidOrderFromPayment(payment)
-        return res.json({ ok: true, ...result })
-      } catch (e) {
-        console.error('[razorpay-webhook]', e)
-        return res.status(500).json({ ok: false, error: 'Webhook handler failed' })
-      }
-    }
-  )
+  router.get('/upi-config', (_req, res) => {
+    const upi = getUpiConfig()
+    res.json({
+      ok: true,
+      upi: {
+        upiId: upi.upiId,
+        displayName: upi.displayName,
+        qrImageUrl: upi.qrImageUrl || '',
+        configured: upi.configured,
+        method: 'direct_upi',
+        note: 'Pay via UPI. Course access activates only after admin verifies your transaction ID (UTR).',
+      },
+    })
+  })
 
   router.post('/create-order', authMiddleware, async (req, res) => {
     try {
-      const { configured, keyId } = getRazorpayConfig()
-      if (!configured) {
-        return res.status(503).json({
-          ok: false,
-          error:
-            'UPI payments are not configured yet. Set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET on the server.',
-          code: 'RAZORPAY_NOT_CONFIGURED',
-        })
-      }
       const cfg = await getConfig()
       const planId = String(req.body?.planId || req.body?.plan_id || '').trim()
       let plan = planId ? findPlan(cfg, planId) : null
@@ -147,144 +106,321 @@ export function createPaymentRouter({ getConfig, uid }) {
       if (!amountPaise || amountPaise < 100) {
         return res.status(400).json({ ok: false, error: 'Invalid plan price' })
       }
+      const amountInr = Math.round(amountPaise / 100)
       const durationDays = plan ? Number(plan.duration_days) || 730 : Number(cfg.duration_days) || 730
       const resolvedPlanId = plan?.id || null
-      const id = uid('ord')
+      const id = orderRef()
       const now = new Date().toISOString()
-      const rzpOrder = await createRazorpayOrder({
-        amountPaise,
-        receipt: id,
-        notes: {
-          local_order_id: id,
-          user_id: req.user.id,
-          plan_id: resolvedPlanId || '',
-        },
+
+      const upi = getUpiConfig()
+      const deepLink = buildUpiDeepLink({
+        upiId: upi.upiId,
+        displayName: upi.displayName,
+        amountInr,
+        orderRef: id,
       })
-      db.prepare(
-        `INSERT INTO orders (id, user_id, amount_paise, currency, status, provider, created_at, updated_at, plan_id)\n         VALUES (?, ?, ?, 'INR', 'created', 'razorpay', ?, ?, ?)`
-      ).run(id, req.user.id, amountPaise, now, now, resolvedPlanId)
-      db.prepare(`UPDATE orders SET provider_ref = ?, updated_at = ? WHERE id = ?`).run(rzpOrder.id, now, id)
+      const qrImageUrl = resolveQrImageUrl(upi, deepLink)
+
+      const order = {
+        id,
+        user_id: req.user.id,
+        user_email: req.user.email || '',
+        user_name: req.user.name || '',
+        plan_id: resolvedPlanId,
+        plan_name: plan?.name || cfg.title || 'Computer Quest',
+        amount_paise: amountPaise,
+        amount_inr: amountInr,
+        duration_days: durationDays,
+        status: 'PENDING',
+        utr: null,
+        paid_at: null,
+        submitted_at: null,
+        verified_at: null,
+        verified_by: null,
+        reject_reason: null,
+        provider: 'direct_upi',
+        created_at: now,
+        updated_at: now,
+      }
+
+      const saved = await savePayment(order)
+
+      try {
+        db.prepare(
+          `INSERT INTO orders (id, user_id, amount_paise, currency, status, provider, created_at, updated_at, plan_id)
+           VALUES (?, ?, ?, 'INR', 'created', 'direct_upi', ?, ?, ?)`
+        ).run(id, req.user.id, amountPaise, now, now, resolvedPlanId)
+      } catch {
+        /* ignore */
+      }
+
       res.json({
         ok: true,
-        order: {
-          id,
-          amountPaise,
-          amountInr: Math.round(amountPaise / 100),
+        order: publicOrder(saved.order || order),
+        upi: {
+          upiId: upi.upiId,
+          displayName: upi.displayName,
+          qrImageUrl,
+          deepLink,
+          amountInr,
           currency: 'INR',
-          status: 'created',
-          provider: 'razorpay',
-          planId: resolvedPlanId,
-          planName: plan?.name || cfg.title,
-          durationDays,
-          razorpayOrderId: rzpOrder.id,
-          keyId,
         },
+        durable: saved.durable,
+        warning: saved.warning,
+        message:
+          'Pay the exact amount via UPI, then submit your UTR/transaction ID. Access activates only after admin verification.',
       })
     } catch (e) {
       console.error(e)
-      const status = e.code === 'RAZORPAY_NOT_CONFIGURED' ? 503 : 500
-      res.status(status).json({ ok: false, error: e.message || 'Failed to create order', code: e.code })
+      res.status(500).json({ ok: false, error: e.message || 'Failed to create order' })
+    }
+  })
+
+  router.post('/submit', authMiddleware, async (req, res) => {
+    try {
+      const orderId = String(req.body?.orderId || '').trim()
+      const utr = String(req.body?.utr || req.body?.transactionId || '').trim()
+      const paidAt = req.body?.paidAt ? String(req.body.paidAt) : null
+      const note = req.body?.note ? String(req.body.note).slice(0, 500) : null
+
+      if (!orderId) return res.status(400).json({ ok: false, error: 'orderId required' })
+      if (!utr || utr.length < 6) {
+        return res.status(400).json({ ok: false, error: 'Valid UPI transaction ID / UTR required' })
+      }
+
+      const doc = await loadPaymentsDoc({ force: true })
+      const order = findOrderById(doc, orderId)
+      if (!order || order.user_id !== req.user.id) {
+        return res.status(404).json({ ok: false, error: 'Order not found' })
+      }
+      if (order.status === 'VERIFIED') {
+        return res.json({ ok: true, order: publicOrder(order), message: 'This payment was already verified.' })
+      }
+      if (order.status === 'CANCELLED') {
+        return res.status(400).json({ ok: false, error: 'This order was cancelled. Create a new order.' })
+      }
+
+      const existingUtr = findOrderByUtr(doc, utr)
+      if (existingUtr && existingUtr.id !== orderId) {
+        return res.status(409).json({
+          ok: false,
+          error: 'This transaction ID was already submitted for another order.',
+        })
+      }
+
+      const now = new Date().toISOString()
+      const updated = {
+        ...order,
+        status: 'SUBMITTED',
+        utr: utr.toUpperCase(),
+        paid_at: paidAt || now,
+        submitted_at: now,
+        note,
+        reject_reason: null,
+        updated_at: now,
+      }
+      const saved = await savePayment(updated)
+
+      try {
+        db.prepare(`UPDATE orders SET status = 'submitted', provider_ref = ?, updated_at = ? WHERE id = ?`).run(
+          updated.utr,
+          now,
+          orderId
+        )
+      } catch {
+        /* ignore */
+      }
+
+      res.json({
+        ok: true,
+        order: publicOrder(saved.order || updated),
+        message:
+          'Payment details submitted. Your course access will be activated after admin verifies the UTR.',
+      })
+    } catch (e) {
+      console.error(e)
+      res.status(500).json({ ok: false, error: 'Failed to submit payment details' })
+    }
+  })
+
+  router.get('/mine', authMiddleware, async (req, res) => {
+    try {
+      const doc = await loadPaymentsDoc()
+      res.json({ ok: true, orders: listOrdersForUser(doc, req.user.id).map(publicOrder) })
+    } catch (e) {
+      res.status(500).json({ ok: false, error: 'Failed to load payments' })
+    }
+  })
+
+  router.post('/cancel', authMiddleware, async (req, res) => {
+    try {
+      const orderId = String(req.body?.orderId || '').trim()
+      const doc = await loadPaymentsDoc({ force: true })
+      const order = findOrderById(doc, orderId)
+      if (!order || order.user_id !== req.user.id) {
+        return res.status(404).json({ ok: false, error: 'Order not found' })
+      }
+      if (order.status === 'VERIFIED') {
+        return res.status(400).json({ ok: false, error: 'Verified orders cannot be cancelled' })
+      }
+      if (order.status === 'SUBMITTED') {
+        return res.status(400).json({
+          ok: false,
+          error: 'Payment already submitted for verification. Contact support if needed.',
+        })
+      }
+      const now = new Date().toISOString()
+      const updated = { ...order, status: 'CANCELLED', updated_at: now }
+      const saved = await savePayment(updated)
+      res.json({ ok: true, order: publicOrder(saved.order || updated) })
+    } catch (e) {
+      res.status(500).json({ ok: false, error: 'Failed to cancel order' })
     }
   })
 
   router.post('/confirm', authMiddleware, async (req, res) => {
+    if (req.body?.mockResult || req.body?.status === 'VERIFIED' || req.body?.status === 'paid') {
+      return res.status(400).json({
+        ok: false,
+        error:
+          'Automatic payment confirmation is disabled. Pay via UPI and submit your UTR for admin verification.',
+      })
+    }
+    return res.status(400).json({
+      ok: false,
+      error: 'Use POST /api/payments/submit with your UTR after paying via UPI.',
+    })
+  })
+
+  router.get('/admin/list', authMiddleware, adminMiddleware, async (req, res) => {
     try {
-      const {
-        orderId,
-        razorpay_order_id,
-        razorpay_payment_id,
-        razorpay_signature,
-        cancelled,
-        failed,
-      } = req.body || {}
-      const order = db.prepare('SELECT * FROM orders WHERE id = ? AND user_id = ?').get(orderId, req.user.id)
-      if (!order) return res.status(404).json({ ok: false, error: 'Order not found' })
-      const now = new Date().toISOString()
-      if (cancelled) {
-        if (order.status === 'created') {
-          db.prepare(`UPDATE orders SET status = 'cancelled', updated_at = ? WHERE id = ?`).run(now, orderId)
-        }
-        return res.json({ ok: false, status: 'cancelled', error: 'Payment cancelled' })
-      }
-      if (failed) {
-        if (order.status === 'created') {
-          db.prepare(`UPDATE orders SET status = 'failed', updated_at = ? WHERE id = ?`).run(now, orderId)
-        }
-        return res.json({ ok: false, status: 'failed', error: 'Payment failed' })
-      }
-      if (order.status === 'paid') {
-        const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id) || req.user
-        await hydrateMembershipFromDurable(user)
-        const mem = getMembership(user.id)
-        const token = signToken(user, mem)
-        return res.json({
-          ok: true,
-          status: 'paid',
-          alreadyPaid: true,
-          token,
-          user: publicUser(user, membershipPublic(mem)),
-        })
-      }
-      const { configured } = getRazorpayConfig()
-      if (!configured) {
-        return res.status(503).json({
-          ok: false,
-          error: 'Payment verification is not configured on the server.',
-          code: 'RAZORPAY_NOT_CONFIGURED',
-        })
-      }
-      if (req.body?.mockResult) {
-        return res.status(400).json({
-          ok: false,
-          error: 'Mock payments are disabled. Complete a real UPI payment.',
-        })
-      }
-      if (!verifyCheckoutSignature({ razorpay_order_id, razorpay_payment_id, razorpay_signature })) {
-        return res.status(400).json({ ok: false, error: 'Invalid payment signature' })
-      }
-      let payment
-      try {
-        payment = await fetchRazorpayPayment(razorpay_payment_id)
-      } catch (e) {
-        console.error('[confirm] fetch payment', e)
-        return res.status(502).json({ ok: false, error: 'Could not verify payment with provider' })
-      }
-      if (payment.order_id && razorpay_order_id && payment.order_id !== razorpay_order_id) {
-        return res.status(400).json({ ok: false, error: 'Payment order mismatch' })
-      }
-      if (Number(payment.amount) !== Number(order.amount_paise)) {
-        return res.status(400).json({ ok: false, error: 'Payment amount mismatch' })
-      }
-      if (String(payment.currency || '').toUpperCase() !== 'INR') {
-        return res.status(400).json({ ok: false, error: 'Invalid currency' })
-      }
-      if (!isPaidPaymentStatus(payment.status)) {
-        return res.status(400).json({
-          ok: false,
-          status: payment.status || 'unknown',
-          error: 'Payment is not completed',
-        })
-      }
-      const ref = `${razorpay_order_id}:${razorpay_payment_id}`
-      db.prepare(`UPDATE orders SET status = 'paid', provider_ref = ?, updated_at = ? WHERE id = ?`).run(
-        ref,
-        now,
-        orderId
-      )
-      const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id) || req.user
-      const { mem, persisted } = await activateMembershipForOrder(order, user)
-      const token = signToken(user, mem)
+      const doc = await loadPaymentsDoc({ force: true })
+      let orders = listOrders(doc)
+      const status = String(req.query?.status || '').toUpperCase()
+      if (status) orders = orders.filter((o) => o.status === status)
       res.json({
         ok: true,
-        status: 'paid',
-        token,
-        user: publicUser(user, membershipPublic(mem)),
-        durable: persisted.durable?.durable,
-        warning: persisted.durable?.warning,
+        orders: orders.map((o) => ({
+          ...publicOrder(o),
+          userId: o.user_id,
+          userEmail: o.user_email,
+          userName: o.user_name,
+          note: o.note || null,
+        })),
+      })
+    } catch (e) {
+      res.status(500).json({ ok: false, error: 'Failed to load payment submissions' })
+    }
+  })
+
+  router.post('/admin/verify', authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+      const orderId = String(req.body?.orderId || '').trim()
+      if (!orderId) return res.status(400).json({ ok: false, error: 'orderId required' })
+
+      const doc = await loadPaymentsDoc({ force: true })
+      const order = findOrderById(doc, orderId)
+      if (!order) return res.status(404).json({ ok: false, error: 'Order not found' })
+
+      if (order.status === 'VERIFIED') {
+        return res.json({
+          ok: true,
+          alreadyVerified: true,
+          order: publicOrder(order),
+          message: 'Order was already verified.',
+        })
+      }
+      if (order.status === 'CANCELLED') {
+        return res.status(400).json({ ok: false, error: 'Cannot verify a cancelled order' })
+      }
+      if (!order.utr) {
+        return res.status(400).json({ ok: false, error: 'Student has not submitted a UTR yet' })
+      }
+
+      const byUtr = findOrderByUtr(doc, order.utr)
+      if (byUtr && byUtr.id !== order.id && byUtr.status === 'VERIFIED') {
+        return res.status(409).json({
+          ok: false,
+          error: 'This UTR is already verified on another order',
+        })
+      }
+
+      const now = new Date().toISOString()
+      const updated = {
+        ...order,
+        status: 'VERIFIED',
+        verified_at: now,
+        verified_by: req.user.email || req.user.id,
+        reject_reason: null,
+        updated_at: now,
+      }
+      const saved = await savePayment(updated)
+
+      const user =
+        db.prepare('SELECT * FROM users WHERE id = ?').get(order.user_id) || {
+          id: order.user_id,
+          email: order.user_email,
+          name: order.user_name,
+          role: 'student',
+        }
+      const { mem, persisted } = await activateMembershipForOrder(updated, user)
+
+      try {
+        db.prepare(
+          `UPDATE orders SET status = 'paid', provider_ref = ?, updated_at = ? WHERE id = ?`
+        ).run(order.utr, now, orderId)
+      } catch {
+        /* ignore */
+      }
+
+      res.json({
+        ok: true,
+        order: publicOrder(saved.order || updated),
+        membership: membershipPublic(mem),
+        durable: persisted?.durable?.durable,
+        message: 'Payment verified. Membership activated.',
       })
     } catch (e) {
       console.error(e)
-      res.status(500).json({ ok: false, error: 'Payment confirmation failed' })
+      res.status(500).json({ ok: false, error: 'Failed to verify payment' })
+    }
+  })
+
+  router.post('/admin/reject', authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+      const orderId = String(req.body?.orderId || '').trim()
+      const reason = String(req.body?.reason || 'Payment could not be verified').slice(0, 300)
+      if (!orderId) return res.status(400).json({ ok: false, error: 'orderId required' })
+
+      const doc = await loadPaymentsDoc({ force: true })
+      const order = findOrderById(doc, orderId)
+      if (!order) return res.status(404).json({ ok: false, error: 'Order not found' })
+      if (order.status === 'VERIFIED') {
+        return res.status(400).json({ ok: false, error: 'Cannot reject an already verified payment' })
+      }
+
+      const now = new Date().toISOString()
+      const updated = {
+        ...order,
+        status: 'REJECTED',
+        reject_reason: reason,
+        updated_at: now,
+      }
+      const saved = await savePayment(updated)
+
+      try {
+        db.prepare(`UPDATE orders SET status = 'failed', updated_at = ? WHERE id = ?`).run(now, orderId)
+      } catch {
+        /* ignore */
+      }
+
+      res.json({
+        ok: true,
+        order: publicOrder(saved.order || updated),
+        message: 'Payment rejected. Membership was not activated.',
+      })
+    } catch (e) {
+      res.status(500).json({ ok: false, error: 'Failed to reject payment' })
     }
   })
 
