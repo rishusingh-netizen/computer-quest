@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-14T07:47:35.318Z",
+  "updated_at": "2026-10-15T10:01:44.594Z",
   "byUserId": {
     "usr_mv2nhoru_91e24939": {
       "id": "usr_mv2nhoru_91e24939",
@@ -81,6 +81,15 @@
       "role": "student",
       "created_at": "2026-10-14T07:47:35.208Z",
       "updated_at": "2026-10-14T07:47:35.318Z"
+    },
+    "usr_mv9dd3l0_6209ed97": {
+      "id": "usr_mv9dd3l0_6209ed97",
+      "email": "upitest1792058503@test.local",
+      "name": "UPI Test",
+      "password_hash": "$2a$10$b2QLFtntAACs0qLcCE9YKOLwNg0/9utlkdeVr0FTKDsLTYETnhJJe",
+      "role": "student",
+      "created_at": "2026-10-15T10:01:44.468Z",
+      "updated_at": "2026-10-15T10:01:44.594Z"
     }
   }
 }
