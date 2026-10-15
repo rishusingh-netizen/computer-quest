@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-14T05:22:11.042Z",
+  "updated_at": "2026-10-15T10:01:50.720Z",
   "byUserId": {
     "usr_muxyrv62_ab4c1352": {
       "user_id": "usr_muxyrv62_ab4c1352",
@@ -200,6 +200,16 @@
       "source": "purchase:plan-6m",
       "plan_id": "plan-6m",
       "updated_at": "2026-10-14T05:22:11.042Z"
+    },
+    "usr_mv9dd3l0_6209ed97": {
+      "user_id": "usr_mv9dd3l0_6209ed97",
+      "email": "upitest1792058503@test.local",
+      "status": "active",
+      "start_at": "2026-10-15T10:01:50.720Z",
+      "expires_at": "2027-04-15T10:01:50.720Z",
+      "source": "purchase:plan-6m",
+      "plan_id": "plan-6m",
+      "updated_at": "2026-10-15T10:01:50.720Z"
     }
   }
 }
