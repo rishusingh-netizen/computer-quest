@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-20T18:17:09.115Z",
+  "updated_at": "2026-10-20T18:17:44.923Z",
   "byUserId": {
     "usr_mv2lscc2_15b4c9b8": {
       "xp": 30,
@@ -1076,7 +1076,7 @@
       "updated_at": "2026-10-20T14:32:39.089Z"
     },
     "usr_mvgzk1ec_5603874d": {
-      "xp": 240,
+      "xp": 260,
       "level": 2,
       "streak": 1,
       "lastActiveDate": "2026-10-20",
@@ -1093,7 +1093,8 @@
         "design",
         "prompt",
         "phishing",
-        "desktop"
+        "desktop",
+        "keyboard"
       ],
       "practiceScores": {
         "hardware-id": {
@@ -1172,6 +1173,13 @@
           "bestScore": 4,
           "attempts": 1,
           "date": "2026-10-20"
+        },
+        "keyboard": {
+          "score": 6,
+          "total": 6,
+          "bestScore": 6,
+          "attempts": 1,
+          "date": "2026-10-20"
         }
       },
       "gamesPlayed": {},
@@ -1185,7 +1193,7 @@
         "language": "en"
       },
       "user_id": "usr_mvgzk1ec_5603874d",
-      "updated_at": "2026-10-20T18:17:09.115Z"
+      "updated_at": "2026-10-20T18:17:44.923Z"
     }
   }
 }
