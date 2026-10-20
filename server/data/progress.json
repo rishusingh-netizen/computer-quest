@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-20T18:15:38.143Z",
+  "updated_at": "2026-10-20T18:15:56.162Z",
   "byUserId": {
     "usr_mv2lscc2_15b4c9b8": {
       "xp": 30,
@@ -1076,8 +1076,8 @@
       "updated_at": "2026-10-20T14:32:39.089Z"
     },
     "usr_mvgzk1ec_5603874d": {
-      "xp": 185,
-      "level": 1,
+      "xp": 215,
+      "level": 2,
       "streak": 1,
       "lastActiveDate": "2026-10-20",
       "completedLessons": [],
@@ -1091,7 +1091,8 @@
         "zip",
         "settings",
         "design",
-        "prompt"
+        "prompt",
+        "phishing"
       ],
       "practiceScores": {
         "hardware-id": {
@@ -1156,6 +1157,13 @@
           "bestScore": 100,
           "attempts": 1,
           "date": "2026-10-20"
+        },
+        "phishing": {
+          "score": 4,
+          "total": 4,
+          "bestScore": 4,
+          "attempts": 1,
+          "date": "2026-10-20"
         }
       },
       "gamesPlayed": {},
@@ -1169,7 +1177,7 @@
         "language": "en"
       },
       "user_id": "usr_mvgzk1ec_5603874d",
-      "updated_at": "2026-10-20T18:15:38.143Z"
+      "updated_at": "2026-10-20T18:15:56.162Z"
     }
   }
 }
