@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-20T17:59:51.220Z",
+  "updated_at": "2026-10-20T18:00:37.931Z",
   "byUserId": {
     "usr_muxyrv62_ab4c1352": {
       "user_id": "usr_muxyrv62_ab4c1352",
@@ -225,11 +225,11 @@
       "user_id": "usr_mvgzk1ec_5603874d",
       "email": "memfix_a_1792519042@test.local",
       "status": "active",
-      "start_at": "2026-10-20T17:59:51.220Z",
-      "expires_at": "2028-10-20T17:59:51.220Z",
+      "start_at": "2026-10-20T18:00:37.931Z",
+      "expires_at": "2028-10-20T18:00:37.931Z",
       "source": "admin_grant",
       "plan_id": null,
-      "updated_at": "2026-10-20T17:59:51.220Z"
+      "updated_at": "2026-10-20T18:00:37.931Z"
     }
   }
 }
