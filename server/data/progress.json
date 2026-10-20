@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-20T18:10:35.319Z",
+  "updated_at": "2026-10-20T18:10:58.898Z",
   "byUserId": {
     "usr_mv2lscc2_15b4c9b8": {
       "xp": 30,
@@ -1087,10 +1087,10 @@
       ],
       "practiceScores": {
         "hardware-id": {
-          "score": 3,
+          "score": 1,
           "total": 5,
           "bestScore": 3,
-          "attempts": 1,
+          "attempts": 2,
           "date": "2026-10-20"
         }
       },
@@ -1105,7 +1105,7 @@
         "language": "en"
       },
       "user_id": "usr_mvgzk1ec_5603874d",
-      "updated_at": "2026-10-20T18:10:35.319Z"
+      "updated_at": "2026-10-20T18:10:58.898Z"
     }
   }
 }
