@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-20T14:29:13.222Z",
+  "updated_at": "2026-10-20T14:29:32.779Z",
   "byUserId": {
     "usr_mv2nhoru_91e24939": {
       "id": "usr_mv2nhoru_91e24939",
@@ -144,6 +144,15 @@
       "role": "student",
       "created_at": "2026-10-20T14:29:13.094Z",
       "updated_at": "2026-10-20T14:29:13.222Z"
+    },
+    "usr_mvgs4r7p_7b6e8a77": {
+      "id": "usr_mvgs4r7p_7b6e8a77",
+      "email": "qafull1792506571@test.local",
+      "name": "QA Full Student",
+      "password_hash": "$2a$10$7UjKYKcp7hqYXnncKgDc8eykIv76pNaovmdaKkZuYUaM2ay272lcm",
+      "role": "student",
+      "created_at": "2026-10-20T14:29:32.666Z",
+      "updated_at": "2026-10-20T14:29:32.779Z"
     }
   }
 }
