@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-20T13:59:46.812Z",
+  "updated_at": "2026-10-20T14:29:34.503Z",
   "byId": {
     "CQ-YNQWSUKT": {
       "id": "CQ-YNQWSUKT",
@@ -87,6 +87,27 @@
       "provider": "direct_upi",
       "created_at": "2026-10-20T13:59:46.656Z",
       "updated_at": "2026-10-20T13:59:46.812Z"
+    },
+    "CQ-JS43JCUV": {
+      "id": "CQ-JS43JCUV",
+      "user_id": "usr_mvgs4r7p_7b6e8a77",
+      "user_email": "qafull1792506571@test.local",
+      "user_name": "QA Full Student",
+      "plan_id": "plan-6m",
+      "plan_name": "6 Months – Essential",
+      "amount_paise": 19900,
+      "amount_inr": 199,
+      "duration_days": 182,
+      "status": "PENDING",
+      "utr": null,
+      "paid_at": null,
+      "submitted_at": null,
+      "verified_at": null,
+      "verified_by": null,
+      "reject_reason": null,
+      "provider": "direct_upi",
+      "created_at": "2026-10-20T14:29:34.375Z",
+      "updated_at": "2026-10-20T14:29:34.503Z"
     }
   },
   "utrIndex": {
