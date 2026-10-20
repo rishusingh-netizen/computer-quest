@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-20T18:13:37.362Z",
+  "updated_at": "2026-10-20T18:14:19.818Z",
   "byUserId": {
     "usr_mv2lscc2_15b4c9b8": {
       "xp": 30,
@@ -1076,7 +1076,7 @@
       "updated_at": "2026-10-20T14:32:39.089Z"
     },
     "usr_mvgzk1ec_5603874d": {
-      "xp": 100,
+      "xp": 120,
       "level": 1,
       "streak": 1,
       "lastActiveDate": "2026-10-20",
@@ -1087,7 +1087,8 @@
         "mouse",
         "email",
         "word",
-        "download-upload"
+        "download-upload",
+        "zip"
       ],
       "practiceScores": {
         "hardware-id": {
@@ -1124,6 +1125,13 @@
           "bestScore": 2,
           "attempts": 1,
           "date": "2026-10-20"
+        },
+        "zip": {
+          "score": 2,
+          "total": 2,
+          "bestScore": 2,
+          "attempts": 1,
+          "date": "2026-10-20"
         }
       },
       "gamesPlayed": {},
@@ -1137,7 +1145,7 @@
         "language": "en"
       },
       "user_id": "usr_mvgzk1ec_5603874d",
-      "updated_at": "2026-10-20T18:13:37.362Z"
+      "updated_at": "2026-10-20T18:14:19.818Z"
     }
   }
 }
