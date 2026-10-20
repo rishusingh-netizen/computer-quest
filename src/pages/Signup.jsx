@@ -18,8 +18,17 @@ export default function Signup() {
   async function onSubmit(e) {
     e.preventDefault()
     setError('')
+    const pw = String(password || '')
+    if (pw.length < 8) {
+      setError('Password must be at least 8 characters')
+      return
+    }
+    if (!/[A-Za-z]/.test(pw) || !/[0-9]/.test(pw)) {
+      setError('Password must include at least one letter and one number')
+      return
+    }
     setBusy(true)
-    const res = await signup({ name, email, password })
+    const res = await signup({ name, email, password: pw })
     setBusy(false)
     if (!res.ok) {
       setError(res.error)
@@ -50,14 +59,14 @@ export default function Signup() {
           required
           autoComplete="email"
         />
-        <label className="text-sm">Password (min 6 characters)</label>
+        <label className="text-sm">Password (min 8 characters, include a letter and a number)</label>
         <input
           style={{ width: '100%', marginBottom: 12, padding: 10, borderRadius: 8, border: '1px solid var(--cq-border)' }}
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
-          minLength={6}
+          minLength={8}
           autoComplete="new-password"
         />
         {error && <p className="qh-error mb-2">{error}</p>}
