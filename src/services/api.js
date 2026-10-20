@@ -1,5 +1,9 @@
 /**
  * API client for Computer Quest backend.
+ *
+ * Auth token: JWT only (never password). Stored in localStorage so the session
+ * survives tab close and browser restart. Server JWT expiry is 14 days
+ * (see server/auth.js JWT_DAYS). Logout always clears the token.
  */
 
 export const PRODUCTION_API_ORIGIN = 'https://computer-quest.vercel.app'
@@ -26,7 +30,9 @@ export function getToken() {
     const legacy = sessionStorage.getItem(TOKEN_KEY)
     if (legacy) {
       localStorage.setItem(TOKEN_KEY, legacy)
-      try { sessionStorage.removeItem(TOKEN_KEY) } catch {}
+      try {
+        sessionStorage.removeItem(TOKEN_KEY)
+      } catch {}
       return legacy
     }
     return null
@@ -39,16 +45,43 @@ export function setToken(token) {
   try {
     if (token) {
       localStorage.setItem(TOKEN_KEY, token)
-      try { sessionStorage.removeItem(TOKEN_KEY) } catch {}
+      try {
+        sessionStorage.removeItem(TOKEN_KEY)
+      } catch {}
     } else {
       localStorage.removeItem(TOKEN_KEY)
-      try { sessionStorage.removeItem(TOKEN_KEY) } catch {}
+      try {
+        sessionStorage.removeItem(TOKEN_KEY)
+      } catch {}
     }
   } catch {}
 }
 
 export function clearToken() {
   setToken(null)
+}
+
+/**
+ * Decode JWT payload without verifying signature (UI hydration only).
+ * Returns null if missing, malformed, or past exp.
+ */
+export function peekTokenPayload() {
+  const token = getToken()
+  if (!token) return null
+  try {
+    const parts = String(token).split('.')
+    if (parts.length < 2) return null
+    const b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/')
+    const pad = b64.length % 4 === 0 ? '' : '='.repeat(4 - (b64.length % 4))
+    const json = atob(b64 + pad)
+    const payload = JSON.parse(json)
+    if (payload?.exp && Number(payload.exp) * 1000 < Date.now()) {
+      return null
+    }
+    return payload
+  } catch {
+    return null
+  }
 }
 
 async function request(path, options = {}) {
