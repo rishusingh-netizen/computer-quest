@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-15T10:34:53.379Z",
+  "updated_at": "2026-10-20T13:38:54.760Z",
   "byId": {
     "CQ-YNQWSUKT": {
       "id": "CQ-YNQWSUKT",
@@ -55,16 +55,16 @@
       "amount_paise": 19900,
       "amount_inr": 199,
       "duration_days": 182,
-      "status": "SUBMITTED",
+      "status": "VERIFIED",
       "utr": "EMAILUTR123456",
       "paid_at": "2026-10-15T10:34:53.270Z",
       "submitted_at": "2026-10-15T10:34:53.270Z",
-      "verified_at": null,
-      "verified_by": null,
+      "verified_at": "2026-10-20T13:38:54.613Z",
+      "verified_by": "admin@computerquest.local",
       "reject_reason": null,
       "provider": "direct_upi",
       "created_at": "2026-10-15T10:34:50.355Z",
-      "updated_at": "2026-10-15T10:34:53.379Z",
+      "updated_at": "2026-10-20T13:38:54.760Z",
       "note": null
     }
   },
