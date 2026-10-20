@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-20T14:24:32.974Z",
+  "updated_at": "2026-10-20T14:25:22.392Z",
   "byUserId": {
     "usr_mv2lscc2_15b4c9b8": {
       "xp": 30,
@@ -1008,6 +1008,28 @@
       },
       "user_id": "usr_mvgrrnfv_dd896d5b",
       "updated_at": "2026-10-20T14:20:21.214Z"
+    },
+    "usr_mvgrzdbj_f5aaed4c": {
+      "xp": 0,
+      "level": 1,
+      "streak": 1,
+      "lastActiveDate": "2026-10-15",
+      "completedLessons": [],
+      "lessonScores": {},
+      "practiceCompleted": [],
+      "practiceScores": {},
+      "gamesPlayed": {},
+      "testScores": {},
+      "revisionScores": {},
+      "revisionCompleted": [],
+      "achievements": [],
+      "weakTopics": [],
+      "strongTopics": [],
+      "settings": {
+        "language": "en"
+      },
+      "user_id": "usr_mvgrzdbj_f5aaed4c",
+      "updated_at": "2026-10-20T14:25:22.392Z"
     }
   }
 }
