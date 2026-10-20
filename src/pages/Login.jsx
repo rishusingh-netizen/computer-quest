@@ -9,7 +9,7 @@ function postLoginPath(user, from) {
 }
 
 export default function Login() {
-  const { login, isLoggedIn, isAdmin, user } = useAuth()
+  const { login, isLoggedIn, isAdmin, user, ready } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const [email, setEmail] = useState('')
@@ -18,11 +18,11 @@ export default function Login() {
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
-    if (!isLoggedIn) return
+    if (!ready || !isLoggedIn) return
     navigate(postLoginPath(user || (isAdmin ? { role: 'admin' } : null), location.state?.from), {
       replace: true,
     })
-  }, [isLoggedIn, isAdmin, user, navigate, location.state])
+  }, [ready, isLoggedIn, isAdmin, user, navigate, location.state])
 
   async function onSubmit(e) {
     e.preventDefault()
@@ -35,6 +35,14 @@ export default function Login() {
       return
     }
     navigate(postLoginPath(res.user, location.state?.from), { replace: true })
+  }
+
+  if (!ready) {
+    return (
+      <div className="card" style={{ maxWidth: 420, margin: '24px auto' }}>
+        <p className="text-sm text-muted">Restoring session…</p>
+      </div>
+    )
   }
 
   return (

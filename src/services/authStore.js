@@ -3,7 +3,7 @@
  * Membership and role always come from server when online.
  */
 
-import { api, setToken, clearToken, getToken } from './api'
+import { api, setToken, clearToken, getToken, peekTokenPayload } from './api'
 
 let lastUser = null
 let apiOnline = true
@@ -64,20 +64,69 @@ export function getSessionUser() {
   return lastUser
 }
 
+function userFromTokenPayload(payload) {
+  if (!payload?.sub) return null
+  const membership =
+    payload.mstatus && payload.mstatus !== 'none'
+      ? {
+          status: payload.mstatus,
+          startAt: payload.mstart || null,
+          expiresAt: payload.mexp || null,
+          source: payload.msource || null,
+          planId: payload.mplan || null,
+        }
+      : { status: 'none', startAt: null, expiresAt: null, source: null, planId: null }
+  return {
+    id: payload.sub,
+    email: payload.email || '',
+    name: payload.name || '',
+    role: payload.role || 'student',
+    membership,
+  }
+}
+
+/**
+ * Restore session from localStorage JWT.
+ * - Survives browser/tab close (token in localStorage, not sessionStorage).
+ * - Only clears the token on explicit unauthorized (401) or client-side expiry.
+ * - Offline / 5xx must NOT wipe a still-valid token (that forced admin re-login).
+ */
 export async function restoreSession() {
   const token = getToken()
   if (!token) {
     lastUser = null
     return null
   }
-  const res = await api.me()
-  if (!res.ok) {
+
+  // Expired on client clock → clear
+  const peek = peekTokenPayload()
+  if (!peek) {
     clearToken()
     lastUser = null
     return null
   }
+
+  const res = await api.me()
+
+  // Network / server errors: keep token, soft-hydrate from JWT claims for UI
+  if (res.offline || (res.status && res.status >= 500)) {
+    lastUser = userFromTokenPayload(peek)
+    return lastUser
+  }
+
+  // Unauthorized / invalid token → full logout
+  if (!res.ok) {
+    if (res.status === 401 || res.status === 403) {
+      clearToken()
+      lastUser = null
+      return null
+    }
+    // Other non-OK (e.g. 404) — keep token, soft hydrate
+    lastUser = userFromTokenPayload(peek)
+    return lastUser
+  }
+
   // Server may return a refreshed JWT with up-to-date membership claims
-  // (after durable hydrate). Store it so cold starts keep access.
   if (res.token) {
     setToken(res.token)
   }
@@ -111,8 +160,8 @@ export async function serverCreateOrder(planId) {
  * embeds membership claims — store it immediately so access survives cold starts
  * without requiring the student to log in again.
  */
-export async function serverConfirmPayment(orderId, mockResult) {
-  const res = await api.confirmPayment(orderId, mockResult)
+export async function serverConfirmPayment(orderId, payload = {}) {
+  const res = await api.confirmPayment(orderId, payload)
   if (res?.ok && res.token) {
     setToken(res.token)
   }
