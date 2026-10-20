@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-20T18:20:10.138Z",
+  "updated_at": "2026-10-20T18:20:36.276Z",
   "byUserId": {
     "usr_mv2lscc2_15b4c9b8": {
       "xp": 30,
@@ -1076,7 +1076,7 @@
       "updated_at": "2026-10-20T14:32:39.089Z"
     },
     "usr_mvgzk1ec_5603874d": {
-      "xp": 315,
+      "xp": 340,
       "level": 2,
       "streak": 1,
       "lastActiveDate": "2026-10-20",
@@ -1096,7 +1096,8 @@
         "desktop",
         "keyboard",
         "code-blocks",
-        "excel"
+        "excel",
+        "powerpoint"
       ],
       "practiceScores": {
         "hardware-id": {
@@ -1196,6 +1197,13 @@
           "bestScore": 4,
           "attempts": 1,
           "date": "2026-10-20"
+        },
+        "powerpoint": {
+          "score": 5,
+          "total": 5,
+          "bestScore": 5,
+          "attempts": 1,
+          "date": "2026-10-20"
         }
       },
       "gamesPlayed": {},
@@ -1209,7 +1217,7 @@
         "language": "en"
       },
       "user_id": "usr_mvgzk1ec_5603874d",
-      "updated_at": "2026-10-20T18:20:10.138Z"
+      "updated_at": "2026-10-20T18:20:36.276Z"
     }
   }
 }
