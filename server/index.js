@@ -53,7 +53,6 @@ const ADMIN_EMAIL = String(process.env.CQ_ADMIN_EMAIL || 'admin@computerquest.lo
 const ADMIN_PASSWORD = String(process.env.CQ_ADMIN_PASSWORD || 'Admin@123').trim()
 
 app.use(cors({ origin: true, credentials: true }))
-// Skip JSON body parser for Razorpay webhook (needs raw body for signature)
 app.use((req, res, next) => {
   if (req.path === '/api/payments/razorpay-webhook') return next()
   return express.json({ limit: '1mb' })(req, res, next)
@@ -205,13 +204,20 @@ app.get('/api/health', (_req, res) => {
   res.json({ ok: true, service: 'computer-quest-api', ts: new Date().toISOString(), adminEmail: ADMIN_EMAIL, adminPasswordConfigured: Boolean(ADMIN_PASSWORD) })
 })
 
-// Payments — Razorpay UPI (see server/paymentRoutes.js). Mock success removed.
 app.use('/api/payments', createPaymentRouter({ getConfig, uid }))
 
 app.post('/api/auth/signup', async (req, res) => {
   try {
     const { email, password, name } = req.body || {}
     if (!email || !password || !name) return res.status(400).json({ ok: false, error: 'email, password, and name required' })
+    // New student accounts only — existing users unaffected (login uses stored hash)
+    const pw = String(password)
+    if (pw.length < 8) {
+      return res.status(400).json({ ok: false, error: 'Password must be at least 8 characters' })
+    }
+    if (!/[A-Za-z]/.test(pw) || !/[0-9]/.test(pw)) {
+      return res.status(400).json({ ok: false, error: 'Password must include at least one letter and one number' })
+    }
     const em = String(email).toLowerCase().trim()
     const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(em)
     if (existing) return res.status(409).json({ ok: false, error: 'Email already registered' })
@@ -220,7 +226,7 @@ app.post('/api/auth/signup', async (req, res) => {
       if (getDurableUserByEmail(em)) return res.status(409).json({ ok: false, error: 'Email already registered' })
     } catch (e) { console.warn('[cq-api] durable user check on signup', e.message) }
     const id = uid('usr')
-    const password_hash = await hashPassword(password)
+    const password_hash = await hashPassword(pw)
     const now = new Date().toISOString()
     db.prepare(`INSERT INTO users (id, email, name, password_hash, role, created_at) VALUES (?, ?, ?, ?, 'student', ?)`).run(id, em, name, password_hash, now)
     db.prepare(`INSERT INTO memberships (user_id, status, start_at, expires_at, source, updated_at) VALUES (?, 'none', null, null, null, ?)`).run(id, now)
@@ -341,9 +347,6 @@ app.post('/api/progress/migrate', authMiddleware, async (req, res) => {
   }
 })
 
-// Remaining routes (completion, certificates, admin) — kept from prior production build
-// Import-compatible stubs are inlined below for deploy safety.
-
 app.get('/api/completion/status', authMiddleware, async (req, res) => {
   try {
     const progress = await loadProgress(req.user.id)
@@ -440,15 +443,52 @@ app.get('/api/admin/certificates', authMiddleware, adminMiddleware, async (_req,
   }
 })
 
+app.post('/api/admin/membership', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const userId = String(req.body?.userId || '').trim()
+    const action = String(req.body?.action || '').trim()
+    if (!userId) return res.status(400).json({ ok: false, error: 'userId required' })
+    let user = db.prepare('SELECT * FROM users WHERE id = ?').get(userId)
+    if (!user) return res.status(404).json({ ok: false, error: 'User not found' })
+    if (action === 'grant') {
+      const start = new Date()
+      const end = new Date(start)
+      end.setFullYear(end.getFullYear() + 2)
+      const persisted = await persistMembership(user, {
+        status: 'active',
+        start_at: start.toISOString(),
+        expires_at: end.toISOString(),
+        source: 'admin_grant',
+        plan_id: null,
+      })
+      return res.json({ ok: true, membership: membershipPublic(persisted.row || getMembership(userId)) })
+    }
+    if (action === 'revoke') {
+      const persisted = await persistMembership(user, {
+        status: 'none',
+        start_at: null,
+        expires_at: null,
+        source: null,
+        plan_id: null,
+      })
+      return res.json({ ok: true, membership: membershipPublic(persisted.row || getMembership(userId)) })
+    }
+    return res.status(400).json({ ok: false, error: 'action must be grant or revoke' })
+  } catch (e) {
+    console.error(e)
+    res.status(500).json({ ok: false, error: 'Failed to update membership' })
+  }
+})
+
 app.patch('/api/admin/course', authMiddleware, adminMiddleware, async (req, res) => {
   try {
     const body = req.body || {}
     const current = await getConfig()
     const next = {
-      ...current,
       price_paise: body.price_paise != null ? Number(body.price_paise) : current.price_paise,
       duration_days: body.duration_days != null ? Number(body.duration_days) : current.duration_days,
       title: body.title != null ? String(body.title) : current.title,
+      completion_json: body.completion_json != null ? body.completion_json : current.completion_json,
       plans: Array.isArray(body.plans) ? body.plans : current.plans,
       updated_at: new Date().toISOString(),
     }
@@ -460,39 +500,12 @@ app.patch('/api/admin/course', authMiddleware, adminMiddleware, async (req, res)
   }
 })
 
-app.post('/api/admin/membership', authMiddleware, adminMiddleware, async (req, res) => {
-  try {
-    const { userId, action } = req.body || {}
-    const user = db.prepare('SELECT * FROM users WHERE id = ?').get(userId)
-    if (!user) return res.status(404).json({ ok: false, error: 'User not found' })
-    if (action === 'grant' || action === 'activate') {
-      const start = new Date()
-      const end = new Date(start)
-      end.setFullYear(end.getFullYear() + 2)
-      const persisted = await persistMembership(user, {
-        status: 'active',
-        start_at: start.toISOString(),
-        expires_at: end.toISOString(),
-        source: 'admin_grant',
-        plan_id: null,
-      })
-      return res.json({ ok: true, membership: membershipPublic(persisted.row || getMembership(user.id)) })
-    }
-    res.status(400).json({ ok: false, error: 'Unknown action' })
-  } catch (e) {
-    res.status(500).json({ ok: false, error: 'Failed to update membership' })
-  }
-})
+if (process.env.VERCEL) {
+  // Vercel serverless export
+} else {
+  ensureAdmin().then(() => {
+    app.listen(PORT, () => console.log(`[cq-api] listening on ${PORT}`))
+  })
+}
 
 export default app
-
-if (!process.env.VERCEL) {
-  ensureAdmin()
-    .then(() => {
-      app.listen(PORT, () => console.log(`[cq-api] listening on http://127.0.0.1:${PORT}`))
-    })
-    .catch((e) => {
-      console.error(e)
-      process.exit(1)
-    })
-}
