@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-20T14:39:39.386Z",
+  "updated_at": "2026-10-20T17:57:23.098Z",
   "byUserId": {
     "usr_mv2nhoru_91e24939": {
       "id": "usr_mv2nhoru_91e24939",
@@ -171,6 +171,15 @@
       "role": "student",
       "created_at": "2026-10-20T14:39:39.263Z",
       "updated_at": "2026-10-20T14:39:39.386Z"
+    },
+    "usr_mvgzk1ec_5603874d": {
+      "id": "usr_mvgzk1ec_5603874d",
+      "email": "memfix_a_1792519042@test.local",
+      "name": "Mem Test A",
+      "password_hash": "$2a$10$5SR3DUFaOKPMNmHir003IufygpzSlChkM2F.HOZ0cp1S.jZ5A0fvS",
+      "role": "student",
+      "created_at": "2026-10-20T17:57:22.979Z",
+      "updated_at": "2026-10-20T17:57:23.098Z"
     }
   }
 }
