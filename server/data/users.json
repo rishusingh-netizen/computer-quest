@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-20T14:29:32.779Z",
+  "updated_at": "2026-10-20T14:39:37.767Z",
   "byUserId": {
     "usr_mv2nhoru_91e24939": {
       "id": "usr_mv2nhoru_91e24939",
@@ -153,6 +153,15 @@
       "role": "student",
       "created_at": "2026-10-20T14:29:32.666Z",
       "updated_at": "2026-10-20T14:29:32.779Z"
+    },
+    "usr_mvgshpyf_80c6da1d": {
+      "id": "usr_mvgshpyf_80c6da1d",
+      "email": "ok1792507176@test.local",
+      "name": "OK Student",
+      "password_hash": "$2a$10$bOn4NPT5vK9r1cFlAWDcDedlgG8lkjMZABhW/huz4CoUL.AhLEboK",
+      "role": "student",
+      "created_at": "2026-10-20T14:39:37.630Z",
+      "updated_at": "2026-10-20T14:39:37.767Z"
     }
   }
 }
