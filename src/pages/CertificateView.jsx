@@ -13,7 +13,8 @@ export default function CertificateView() {
       setLoading(true)
       const res = await api.verifyCertificate(certId)
       if (!cancelled) {
-        setCert(res.found ? res.certificate : null)
+        const found = !!(res && res.ok && res.certificate)
+        setCert(found ? res.certificate : null)
         setLoading(false)
       }
     })()
@@ -69,9 +70,7 @@ export default function CertificateView() {
           <h1 style={{ fontSize: '1.75rem', margin: '12px 0' }}>Certificate of Course Completion</h1>
           <p className="text-sm text-muted">This certifies that</p>
           <p style={{ fontSize: '1.5rem', fontWeight: 700, margin: '8px 0' }}>{cert.studentName}</p>
-          <p className="text-sm">
-            has successfully completed the course
-          </p>
+          <p className="text-sm">has successfully completed the course</p>
           <p style={{ fontWeight: 700, margin: '8px 0' }}>{cert.courseName || 'Computer Quest'}</p>
           <p className="text-sm text-muted mt-2">Completion date: {dateStr}</p>
           <p className="text-sm mt-2">
