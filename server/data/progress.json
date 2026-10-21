@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-21T06:50:49.738Z",
+  "updated_at": "2026-10-21T06:51:19.281Z",
   "byUserId": {
     "usr_mv2lscc2_15b4c9b8": {
       "xp": 30,
@@ -1259,7 +1259,7 @@
       "updated_at": "2026-10-21T06:19:30.684Z"
     },
     "usr_mvhqa10o_26c71a28": {
-      "xp": 50,
+      "xp": 100,
       "level": 1,
       "streak": 1,
       "lastActiveDate": "2026-10-21",
@@ -1323,6 +1323,69 @@
               "total": 1
             }
           ]
+        },
+        "level1-basics": {
+          "score": 9,
+          "total": 15,
+          "bestScore": 9,
+          "attempts": 1,
+          "lastScore": 9,
+          "lastXp": 50,
+          "accuracy": 60,
+          "passed": true,
+          "timeTaken": 6,
+          "date": "2026-10-21",
+          "history": [
+            {
+              "score": 9,
+              "total": 15,
+              "date": "2026-10-21",
+              "timeTaken": 6,
+              "passed": true
+            }
+          ],
+          "topicStats": [
+            {
+              "topic": "Windows Basics",
+              "correct": 1,
+              "total": 2
+            },
+            {
+              "topic": "Hardware and Software",
+              "correct": 3,
+              "total": 3
+            },
+            {
+              "topic": "Input Output Devices",
+              "correct": 1,
+              "total": 2
+            },
+            {
+              "topic": "Download Upload ZIP",
+              "correct": 1,
+              "total": 2
+            },
+            {
+              "topic": "Settings",
+              "correct": 0,
+              "total": 1
+            },
+            {
+              "topic": "File Operations",
+              "correct": 1,
+              "total": 2
+            },
+            {
+              "topic": "CPU RAM Storage",
+              "correct": 0,
+              "total": 1
+            },
+            {
+              "topic": "What is a Computer",
+              "correct": 2,
+              "total": 2
+            }
+          ]
         }
       },
       "revisionScores": {},
@@ -1331,14 +1394,16 @@
       "weakTopics": [
         "Malware",
         "Passwords 2FA",
-        "Phishing"
+        "Phishing",
+        "Settings",
+        "CPU RAM Storage"
       ],
       "strongTopics": [],
       "settings": {
         "language": "en"
       },
       "user_id": "usr_mvhqa10o_26c71a28",
-      "updated_at": "2026-10-21T06:50:49.738Z"
+      "updated_at": "2026-10-21T06:51:19.281Z"
     }
   }
 }
