@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-21T06:46:50.086Z",
+  "updated_at": "2026-10-21T06:47:39.053Z",
   "byUserId": {
     "usr_mv2lscc2_15b4c9b8": {
       "xp": 30,
@@ -1270,15 +1270,15 @@
       "gamesPlayed": {},
       "testScores": {
         "level5-security": {
-          "score": 4,
+          "score": 3,
           "total": 10,
           "bestScore": 4,
-          "attempts": 1,
-          "lastScore": 4,
-          "lastXp": 50,
-          "accuracy": 40,
+          "attempts": 2,
+          "lastScore": 3,
+          "lastXp": 0,
+          "accuracy": 30,
           "passed": false,
-          "timeTaken": 18,
+          "timeTaken": 4,
           "date": "2026-10-21",
           "history": [
             {
@@ -1287,13 +1287,25 @@
               "date": "2026-10-21",
               "timeTaken": 18,
               "passed": false
+            },
+            {
+              "score": 3,
+              "total": 10,
+              "date": "2026-10-21",
+              "timeTaken": 4,
+              "passed": false
             }
           ],
           "topicStats": [
             {
               "topic": "Passwords 2FA",
-              "correct": 2,
+              "correct": 1,
               "total": 3
+            },
+            {
+              "topic": "Phishing",
+              "correct": 0,
+              "total": 2
             },
             {
               "topic": "Malware",
@@ -1306,13 +1318,8 @@
               "total": 2
             },
             {
-              "topic": "Phishing",
-              "correct": 1,
-              "total": 2
-            },
-            {
               "topic": "Public Wi-Fi",
-              "correct": 0,
+              "correct": 1,
               "total": 1
             }
           ]
@@ -1323,14 +1330,15 @@
       "achievements": [],
       "weakTopics": [
         "Malware",
-        "Public Wi-Fi"
+        "Passwords 2FA",
+        "Phishing"
       ],
       "strongTopics": [],
       "settings": {
         "language": "en"
       },
       "user_id": "usr_mvhqa10o_26c71a28",
-      "updated_at": "2026-10-21T06:46:50.086Z"
+      "updated_at": "2026-10-21T06:47:39.053Z"
     }
   }
 }
