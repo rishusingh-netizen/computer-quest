@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-21T06:53:41.449Z",
+  "updated_at": "2026-10-21T06:53:55.785Z",
   "byUserId": {
     "usr_mv2lscc2_15b4c9b8": {
       "xp": 30,
@@ -1259,7 +1259,7 @@
       "updated_at": "2026-10-21T06:19:30.684Z"
     },
     "usr_mvhqa10o_26c71a28": {
-      "xp": 200,
+      "xp": 250,
       "level": 2,
       "streak": 1,
       "lastActiveDate": "2026-10-21",
@@ -1474,6 +1474,49 @@
               "total": 5
             }
           ]
+        },
+        "level4-internet": {
+          "score": 4,
+          "total": 12,
+          "bestScore": 4,
+          "attempts": 1,
+          "lastScore": 4,
+          "lastXp": 50,
+          "accuracy": 33,
+          "passed": false,
+          "timeTaken": 4,
+          "date": "2026-10-21",
+          "history": [
+            {
+              "score": 4,
+              "total": 12,
+              "date": "2026-10-21",
+              "timeTaken": 4,
+              "passed": false
+            }
+          ],
+          "topicStats": [
+            {
+              "topic": "Drive",
+              "correct": 0,
+              "total": 3
+            },
+            {
+              "topic": "Browsers",
+              "correct": 1,
+              "total": 3
+            },
+            {
+              "topic": "Gmail",
+              "correct": 2,
+              "total": 3
+            },
+            {
+              "topic": "Internet",
+              "correct": 1,
+              "total": 3
+            }
+          ]
         }
       },
       "revisionScores": {},
@@ -1490,14 +1533,17 @@
         "English Typing",
         "Excel",
         "Word",
-        "PowerPoint"
+        "PowerPoint",
+        "Drive",
+        "Browsers",
+        "Internet"
       ],
       "strongTopics": [],
       "settings": {
         "language": "en"
       },
       "user_id": "usr_mvhqa10o_26c71a28",
-      "updated_at": "2026-10-21T06:53:41.449Z"
+      "updated_at": "2026-10-21T06:53:55.785Z"
     }
   }
 }
