@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-21T06:46:18.234Z",
+  "updated_at": "2026-10-21T06:46:50.086Z",
   "byUserId": {
     "usr_mv2lscc2_15b4c9b8": {
       "xp": 30,
@@ -1259,7 +1259,7 @@
       "updated_at": "2026-10-21T06:19:30.684Z"
     },
     "usr_mvhqa10o_26c71a28": {
-      "xp": 0,
+      "xp": 50,
       "level": 1,
       "streak": 1,
       "lastActiveDate": "2026-10-21",
@@ -1268,17 +1268,69 @@
       "practiceCompleted": [],
       "practiceScores": {},
       "gamesPlayed": {},
-      "testScores": {},
+      "testScores": {
+        "level5-security": {
+          "score": 4,
+          "total": 10,
+          "bestScore": 4,
+          "attempts": 1,
+          "lastScore": 4,
+          "lastXp": 50,
+          "accuracy": 40,
+          "passed": false,
+          "timeTaken": 18,
+          "date": "2026-10-21",
+          "history": [
+            {
+              "score": 4,
+              "total": 10,
+              "date": "2026-10-21",
+              "timeTaken": 18,
+              "passed": false
+            }
+          ],
+          "topicStats": [
+            {
+              "topic": "Passwords 2FA",
+              "correct": 2,
+              "total": 3
+            },
+            {
+              "topic": "Malware",
+              "correct": 0,
+              "total": 2
+            },
+            {
+              "topic": "Privacy",
+              "correct": 1,
+              "total": 2
+            },
+            {
+              "topic": "Phishing",
+              "correct": 1,
+              "total": 2
+            },
+            {
+              "topic": "Public Wi-Fi",
+              "correct": 0,
+              "total": 1
+            }
+          ]
+        }
+      },
       "revisionScores": {},
       "revisionCompleted": [],
       "achievements": [],
-      "weakTopics": [],
+      "weakTopics": [
+        "Malware",
+        "Public Wi-Fi"
+      ],
       "strongTopics": [],
       "settings": {
         "language": "en"
       },
       "user_id": "usr_mvhqa10o_26c71a28",
-      "updated_at": "2026-10-21T06:46:18.234Z"
+      "updated_at": "2026-10-21T06:46:50.086Z"
     }
   }
 }
