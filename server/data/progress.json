@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-21T06:17:27.463Z",
+  "updated_at": "2026-10-21T06:17:53.817Z",
   "byUserId": {
     "usr_mv2lscc2_15b4c9b8": {
       "xp": 30,
@@ -1222,10 +1222,10 @@
           "lastXp": 0
         },
         "folder-sort": {
-          "plays": 1,
+          "plays": 2,
           "bestScore": 10,
           "lastScore": 10,
-          "lastXp": 25
+          "lastXp": 0
         },
         "typing-race": {
           "plays": 1,
@@ -1256,7 +1256,7 @@
         "language": "en"
       },
       "user_id": "usr_mvgzk1ec_5603874d",
-      "updated_at": "2026-10-21T06:17:27.463Z"
+      "updated_at": "2026-10-21T06:17:53.817Z"
     }
   }
 }
