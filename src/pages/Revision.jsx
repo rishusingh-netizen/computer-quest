@@ -21,7 +21,7 @@ export default function Revision() {
     return (
       <RevisionTopic
         topic={topic}
-        onComplete={(score, total, xp) => completeRevision(topicId, score, total, xp, topic.relatedWeak || [])}
+        onComplete={(score, total, xp) => completeRevision(topicId, score, total, xp, topic.matchTopics || topic.relatedWeak || [])}
       />
     )
   }
@@ -47,6 +47,7 @@ export default function Revision() {
         {topics.map((t) => {
           const done = revisionCompleted?.includes(t.id)
           const stats = revisionScores?.[t.id]
+          const desc = t.description || t.summary || ''
           return (
             <Link key={t.id} to={`/revision/${t.id}`} className="card practice-card">
               <div className="flex items-center gap-3 mb-2">
@@ -69,7 +70,10 @@ export default function Revision() {
                   {done && <span className="badge badge-success">Done</span>}
                 </div>
               </div>
-              <p className="text-sm text-muted">{t.description}</p>
+              <p className="text-sm text-muted">{desc}</p>
+              {t.level != null && (
+                <p className="text-sm text-muted mt-1">Level {t.level}{t.levelTitle ? ` · ${t.levelTitle}` : ''}</p>
+              )}
               {stats && (
                 <p className="text-sm mt-2">Best: {stats.bestScore} · Attempts: {stats.attempts}</p>
               )}
