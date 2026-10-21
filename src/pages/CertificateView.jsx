@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { api } from '../services/api'
 
+/** Certificate view — recognizes API shape { ok, certificate } */
 export default function CertificateView() {
   const { certId } = useParams()
   const [cert, setCert] = useState(null)
