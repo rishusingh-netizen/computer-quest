@@ -12,7 +12,13 @@ export default function VerifyCertificate() {
     setBusy(true)
     const res = await api.verifyCertificate(id.trim())
     setBusy(false)
-    setResult(res)
+    // Server returns { ok, certificate } — normalize to found for UI
+    const found = !!(res && res.ok && res.certificate)
+    setResult({
+      ...res,
+      found,
+      certificate: found ? res.certificate : null,
+    })
   }
 
   return (
