@@ -5,8 +5,8 @@ const PAIRS = [
   { id: 'ram', a: 'RAM', b: 'Temporary fast memory' },
   { id: 'ssd', a: 'SSD', b: 'Fast permanent storage' },
   { id: 'hdd', a: 'HDD', b: 'Slower spinning disk storage' },
-  { id: 'gpu', a: 'GPU', b: 'Renders graphics' },
-  { id: 'psu', a: 'Power Supply', b: 'Provides electricity' },
+  { id: 'kb', a: 'Keyboard', b: 'Typing input device' },
+  { id: 'mon', a: 'Monitor', b: 'Display / output screen' },
 ]
 
 function shuffle(arr) {
@@ -20,43 +20,56 @@ function shuffle(arr) {
 
 export default function HardwareMatch({ onFinish }) {
   const cards = useMemo(() => {
-    const items = []
+    const list = []
     PAIRS.forEach((p) => {
-      items.push({ key: p.id + '-a', pairId: p.id, text: p.a })
-      items.push({ key: p.id + '-b', pairId: p.id, text: p.b })
+      list.push({ key: p.id + '-a', pairId: p.id, text: p.a })
+      list.push({ key: p.id + '-b', pairId: p.id, text: p.b })
     })
-    return shuffle(items)
+    return shuffle(list)
   }, [])
-  const [flipped, setFlipped] = useState([])
-  const [matched, setMatched] = useState(() => new Set())
-  const [moves, setMoves] = useState(0)
-  const lock = useRef(false)
 
-  function handleFlip(key) {
-    if (lock.current) return
-    if (matched.has(cards.find((c) => c.key === key)?.pairId)) return
-    if (flipped.includes(key)) return
-    const next = [...flipped, key]
-    setFlipped(next)
-    if (next.length === 2) {
-      setMoves((m) => m + 1)
-      const [k1, k2] = next
-      const c1 = cards.find((c) => c.key === k1)
-      const c2 = cards.find((c) => c.key === k2)
+  const [flipped, setFlipped] = useState([])
+  const [matched, setMatched] = useState([])
+  const matchedRef = useRef([])
+  const flippedRef = useRef([])
+  const [moves, setMoves] = useState(0)
+  const movesRef = useRef(0)
+  const [lock, setLock] = useState(false)
+  const finishedRef = useRef(false)
+
+  function flip(key) {
+    if (lock || matchedRef.current.includes(key) || flippedRef.current.includes(key)) return
+    if (flippedRef.current.length === 0) {
+      flippedRef.current = [key]
+      setFlipped([key])
+      return
+    }
+    if (flippedRef.current.length === 1) {
+      const first = flippedRef.current[0]
+      const next = [first, key]
+      flippedRef.current = next
+      setFlipped(next)
+      movesRef.current += 1
+      setMoves(movesRef.current)
+      const c1 = cards.find((c) => c.key === first)
+      const c2 = cards.find((c) => c.key === key)
       if (c1.pairId === c2.pairId) {
-        const nm = new Set(matched)
-        nm.add(c1.pairId)
-        setMatched(nm)
+        const newMatched = [...matchedRef.current, first, key]
+        matchedRef.current = newMatched
+        setMatched(newMatched)
+        flippedRef.current = []
         setFlipped([])
-        if (nm.size === PAIRS.length) {
-          const score = Math.max(10, 100 - moves * 3)
-          setTimeout(() => onFinish?.(score, { moves: moves + 1 }), 400)
+        if (newMatched.length >= cards.length && !finishedRef.current) {
+          finishedRef.current = true
+          const score = Math.max(10, 100 - movesRef.current * 3)
+          setTimeout(() => onFinish(score, { detail: `Matched in ${movesRef.current} moves` }), 400)
         }
       } else {
-        lock.current = true
+        setLock(true)
         setTimeout(() => {
+          flippedRef.current = []
           setFlipped([])
-          lock.current = false
+          setLock(false)
         }, 700)
       }
     }
@@ -65,19 +78,22 @@ export default function HardwareMatch({ onFinish }) {
   return (
     <div className="card">
       <div className="card-header">
-        <span className="card-title">Match hardware with its job</span>
-        <span className="badge badge-primary">Moves: {moves}</span>
+        <span className="card-title">Match the pairs</span>
+        <span className="badge badge-primary">Moves {moves}</span>
       </div>
-      <div className="hw-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+      <div className="memory-grid">
         {cards.map((c) => {
-          const isUp = flipped.includes(c.key) || matched.has(c.pairId)
+          const isUp = flipped.includes(c.key) || matched.includes(c.key)
+          const isMatch = matched.includes(c.key)
           return (
             <button
               key={c.key}
               type="button"
-              className={`hw-card ${isUp ? 'hw-correct' : ''}`}
-              onClick={() => handleFlip(c.key)}
-              disabled={matched.has(c.pairId)}
+              data-pair={c.pairId}
+              data-key={c.key}
+              className={`memory-card ${isUp ? 'up' : ''} ${isMatch ? 'matched' : ''}`}
+              onClick={() => flip(c.key)}
+              disabled={isMatch}
             >
               {isUp ? c.text : '?'}
             </button>
