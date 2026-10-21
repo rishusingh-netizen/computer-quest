@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-21T06:25:27.331Z",
+  "updated_at": "2026-10-21T06:26:24.497Z",
   "byUserId": {
     "usr_muxyrv62_ab4c1352": {
       "user_id": "usr_muxyrv62_ab4c1352",
@@ -235,11 +235,11 @@
       "user_id": "usr_mvhqa10o_26c71a28",
       "email": "qa.tests.1792563925@cqtest.local",
       "status": "active",
-      "start_at": "2026-10-21T06:25:27.331Z",
-      "expires_at": "2028-10-21T06:25:27.331Z",
+      "start_at": "2026-10-21T06:26:24.497Z",
+      "expires_at": "2028-10-21T06:26:24.497Z",
       "source": "admin_grant",
       "plan_id": null,
-      "updated_at": "2026-10-21T06:25:27.331Z"
+      "updated_at": "2026-10-21T06:26:24.497Z"
     }
   }
 }
