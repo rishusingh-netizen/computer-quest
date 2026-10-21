@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-21T06:54:01.707Z",
+  "updated_at": "2026-10-21T06:54:15.676Z",
   "byUserId": {
     "usr_mv2lscc2_15b4c9b8": {
       "xp": 30,
@@ -1259,7 +1259,7 @@
       "updated_at": "2026-10-21T06:19:30.684Z"
     },
     "usr_mvhqa10o_26c71a28": {
-      "xp": 250,
+      "xp": 300,
       "level": 2,
       "streak": 1,
       "lastActiveDate": "2026-10-21",
@@ -1517,6 +1517,54 @@
               "total": 3
             }
           ]
+        },
+        "level6-design": {
+          "score": 3,
+          "total": 10,
+          "bestScore": 3,
+          "attempts": 1,
+          "lastScore": 3,
+          "lastXp": 50,
+          "accuracy": 30,
+          "passed": false,
+          "timeTaken": 3,
+          "date": "2026-10-21",
+          "history": [
+            {
+              "score": 3,
+              "total": 10,
+              "date": "2026-10-21",
+              "timeTaken": 3,
+              "passed": false
+            }
+          ],
+          "topicStats": [
+            {
+              "topic": "Thumbnails",
+              "correct": 2,
+              "total": 2
+            },
+            {
+              "topic": "Editing",
+              "correct": 0,
+              "total": 2
+            },
+            {
+              "topic": "Canva",
+              "correct": 0,
+              "total": 2
+            },
+            {
+              "topic": "Social",
+              "correct": 1,
+              "total": 2
+            },
+            {
+              "topic": "Photoshop",
+              "correct": 0,
+              "total": 2
+            }
+          ]
         }
       },
       "revisionScores": {},
@@ -1536,14 +1584,17 @@
         "PowerPoint",
         "Drive",
         "Browsers",
-        "Internet"
+        "Internet",
+        "Editing",
+        "Canva",
+        "Photoshop"
       ],
       "strongTopics": [],
       "settings": {
         "language": "en"
       },
       "user_id": "usr_mvhqa10o_26c71a28",
-      "updated_at": "2026-10-21T06:54:01.707Z"
+      "updated_at": "2026-10-21T06:54:15.676Z"
     }
   }
 }
