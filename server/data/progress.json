@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-21T06:51:58.924Z",
+  "updated_at": "2026-10-21T06:52:07.382Z",
   "byUserId": {
     "usr_mv2lscc2_15b4c9b8": {
       "xp": 30,
@@ -1259,7 +1259,7 @@
       "updated_at": "2026-10-21T06:19:30.684Z"
     },
     "usr_mvhqa10o_26c71a28": {
-      "xp": 100,
+      "xp": 150,
       "level": 1,
       "streak": 1,
       "lastActiveDate": "2026-10-21",
@@ -1386,6 +1386,49 @@
               "total": 2
             }
           ]
+        },
+        "level2-typing": {
+          "score": 4,
+          "total": 12,
+          "bestScore": 4,
+          "attempts": 1,
+          "lastScore": 4,
+          "lastXp": 50,
+          "accuracy": 33,
+          "passed": false,
+          "timeTaken": 5,
+          "date": "2026-10-21",
+          "history": [
+            {
+              "score": 4,
+              "total": 12,
+              "date": "2026-10-21",
+              "timeTaken": 5,
+              "passed": false
+            }
+          ],
+          "topicStats": [
+            {
+              "topic": "Hindi Typing",
+              "correct": 1,
+              "total": 2
+            },
+            {
+              "topic": "Shortcuts",
+              "correct": 1,
+              "total": 4
+            },
+            {
+              "topic": "Touch Typing",
+              "correct": 1,
+              "total": 3
+            },
+            {
+              "topic": "English Typing",
+              "correct": 1,
+              "total": 3
+            }
+          ]
         }
       },
       "revisionScores": {},
@@ -1396,14 +1439,17 @@
         "Passwords 2FA",
         "Phishing",
         "Settings",
-        "CPU RAM Storage"
+        "CPU RAM Storage",
+        "Shortcuts",
+        "Touch Typing",
+        "English Typing"
       ],
       "strongTopics": [],
       "settings": {
         "language": "en"
       },
       "user_id": "usr_mvhqa10o_26c71a28",
-      "updated_at": "2026-10-21T06:51:58.924Z"
+      "updated_at": "2026-10-21T06:52:07.382Z"
     }
   }
 }
