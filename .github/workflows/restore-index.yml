@@ -1,0 +1,33 @@
+name: restore-index
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/restore-index.yml'
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Restore server/index.js from known-good commit
+        run: |
+          git show f93b089bd97b4606155da0ece384c77d61c4bc17:server/index.js > server/index.js
+          wc -c server/index.js
+          head -1 server/index.js
+          tail -1 server/index.js
+          test $(wc -c < server/index.js) -gt 20000
+      - name: Commit if changed
+        run: |
+          git config user.name "cq-restore"
+          git config user.email "cq-restore@users.noreply.github.com"
+          git add server/index.js
+          if git diff --staged --quiet; then
+            echo "No change needed"
+          else
+            git commit -m "fix: restore full server/index.js from f93b089 (Actions recovery)"
+            git push
+          fi
