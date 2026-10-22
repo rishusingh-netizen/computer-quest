@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-22T09:12:52.896Z",
+  "updated_at": "2026-10-22T09:19:49.101Z",
   "byId": {
     "CQ-YNQWSUKT": {
       "id": "CQ-YNQWSUKT",
@@ -193,6 +193,27 @@
       "provider": "direct_upi",
       "created_at": "2026-10-22T09:12:52.747Z",
       "updated_at": "2026-10-22T09:12:52.896Z"
+    },
+    "CQ-W1FRZTBK": {
+      "id": "CQ-W1FRZTBK",
+      "user_id": "usr_mvhqa10o_26c71a28",
+      "user_email": "qa.tests.1792563925@cqtest.local",
+      "user_name": "QA Tests",
+      "plan_id": "plan-6m",
+      "plan_name": "6 Months – Essential",
+      "amount_paise": 19900,
+      "amount_inr": 199,
+      "duration_days": 182,
+      "status": "PENDING",
+      "utr": null,
+      "paid_at": null,
+      "submitted_at": null,
+      "verified_at": null,
+      "verified_by": null,
+      "reject_reason": null,
+      "provider": "direct_upi",
+      "created_at": "2026-10-22T09:19:48.973Z",
+      "updated_at": "2026-10-22T09:19:49.101Z"
     }
   },
   "utrIndex": {
