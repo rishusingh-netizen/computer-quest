@@ -83,25 +83,29 @@ async function ensureAdmin() {
   if (!ADMIN_PASSWORD) {
     console.warn('[cq-api] CQ_ADMIN_PASSWORD is empty after trim — admin login will fail until set')
   }
+  // Only CQ_ADMIN_EMAIL is treated as admin (no hardcoded extra admin emails).
+  const email = ADMIN_EMAIL
+  if (!email) return
   const password_hash = await hashPassword(ADMIN_PASSWORD)
   const now = new Date().toISOString()
-  const emails = Array.from(
-    new Set([ADMIN_EMAIL, 'admin@computerquest.local', 'admin@computerquest.app'].map((e) => e.toLowerCase()))
-  )
-  for (const email of emails) {
-    try {
-      const existing = db.prepare('SELECT id, role FROM users WHERE email = ?').get(email)
-      if (existing) {
-        db.prepare(`UPDATE users SET password_hash = ?, role = 'admin', name = ? WHERE email = ?`).run(password_hash, 'Course Admin', email)
-        grantAdminMembership(existing.id)
-        continue
-      }
-      const id = uid('usr')
-      db.prepare(`INSERT INTO users (id, email, name, password_hash, role, created_at) VALUES (?, ?, ?, ?, 'admin', ?)`).run(id, email, 'Course Admin', password_hash, now)
-      grantAdminMembership(id)
-    } catch (e) {
-      console.warn(`[cq-api] ensureAdmin failed for ${email}:`, e.message)
+  try {
+    const existing = db.prepare('SELECT id, role FROM users WHERE email = ?').get(email)
+    if (existing) {
+      db.prepare(`UPDATE users SET password_hash = ?, role = 'admin', name = ? WHERE email = ?`).run(
+        password_hash,
+        'Course Admin',
+        email
+      )
+      grantAdminMembership(existing.id)
+      return
     }
+    const id = uid('usr')
+    db.prepare(
+      `INSERT INTO users (id, email, name, password_hash, role, created_at) VALUES (?, ?, ?, ?, 'admin', ?)`
+    ).run(id, email, 'Course Admin', password_hash, now)
+    grantAdminMembership(id)
+  } catch (e) {
+    console.warn(`[cq-api] ensureAdmin failed for ${email}:`, e.message)
   }
 }
 
@@ -202,7 +206,12 @@ async function saveProgress(userId, progress) {
 }
 
 app.get('/api/health', (_req, res) => {
-  res.json({ ok: true, service: 'computer-quest-api', ts: new Date().toISOString(), adminEmail: ADMIN_EMAIL, adminPasswordConfigured: Boolean(ADMIN_PASSWORD) })
+  res.json({
+    ok: true,
+    service: 'computer-quest-api',
+    ts: new Date().toISOString(),
+    adminPasswordConfigured: Boolean(ADMIN_PASSWORD),
+  })
 })
 
 app.use('/api/payments', createPaymentRouter({ getConfig, uid }))
