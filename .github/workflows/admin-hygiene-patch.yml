@@ -1,0 +1,146 @@
+name: admin-hygiene-patch
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/admin-hygiene-patch.yml'
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply minimal ensureAdmin + health patches only
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          p = Path('server/index.js')
+          t = p.read_text()
+          assert len(t) > 20000, f'too small: {len(t)}'
+          assert 'export default app' in t
+          assert 'PLACEHOLDER' not in t
+          old_ensure = '''async function ensureAdmin() {
+            if (!ADMIN_PASSWORD) {
+              console.warn('[cq-api] CQ_ADMIN_PASSWORD is empty after trim \u2014 admin login will fail until set')
+            }
+            const password_hash = await hashPassword(ADMIN_PASSWORD)
+            const now = new Date().toISOString()
+            const emails = Array.from(
+              new Set([ADMIN_EMAIL, 'admin@computerquest.local', 'admin@computerquest.app'].map((e) => e.toLowerCase()))
+            )
+            for (const email of emails) {
+              try {
+                const existing = db.prepare('SELECT id, role FROM users WHERE email = ?').get(email)
+                if (existing) {
+                  db.prepare(`UPDATE users SET password_hash = ?, role = 'admin', name = ? WHERE email = ?`).run(password_hash, 'Course Admin', email)
+                  grantAdminMembership(existing.id)
+                  continue
+                }
+                const id = uid('usr')
+                db.prepare(`INSERT INTO users (id, email, name, password_hash, role, created_at) VALUES (?, ?, ?, ?, 'admin', ?)`).run(id, email, 'Course Admin', password_hash, now)
+                grantAdminMembership(id)
+              } catch (e) {
+                console.warn(`[cq-api] ensureAdmin failed for ${email}:`, e.message)
+              }
+            }
+          }'''
+          # Use exact file bytes (em dash may be ASCII in file)
+          import re
+          m = re.search(r'async function ensureAdmin\(\) \{[\s\S]*?\n\}', t)
+          assert m, 'ensureAdmin not found'
+          old = m.group(0)
+          new = '''async function ensureAdmin() {
+            if (!ADMIN_PASSWORD) {
+              console.warn('[cq-api] CQ_ADMIN_PASSWORD is empty after trim \u2014 admin login will fail until set')
+            }
+            // Only CQ_ADMIN_EMAIL is treated as admin (no hardcoded extra admin emails).
+            const email = ADMIN_EMAIL
+            if (!email) return
+            const password_hash = await hashPassword(ADMIN_PASSWORD)
+            const now = new Date().toISOString()
+            try {
+              const existing = db.prepare('SELECT id, role FROM users WHERE email = ?').get(email)
+              if (existing) {
+                db.prepare(`UPDATE users SET password_hash = ?, role = 'admin', name = ? WHERE email = ?`).run(
+                  password_hash,
+                  'Course Admin',
+                  email
+                )
+                grantAdminMembership(existing.id)
+                return
+              }
+              const id = uid('usr')
+              db.prepare(
+                `INSERT INTO users (id, email, name, password_hash, role, created_at) VALUES (?, ?, ?, ?, 'admin', ?)`
+              ).run(id, email, 'Course Admin', password_hash, now)
+              grantAdminMembership(id)
+            } catch (e) {
+              console.warn(`[cq-api] ensureAdmin failed for ${email}:`, e.message)
+            }
+          }'''
+          # Preserve original warning character from file
+          warn_line = [ln for ln in old.splitlines() if 'CQ_ADMIN_PASSWORD is empty' in ln][0]
+          new = new.replace("console.warn('[cq-api] CQ_ADMIN_PASSWORD is empty after trim \u2014 admin login will fail until set')", warn_line.strip())
+          # Fix indentation of new block to match file (2 spaces base)
+          # Rebuild new with 0 indent for function body matching original style
+          new = '''async function ensureAdmin() {
+  if (!ADMIN_PASSWORD) {
+    ''' + warn_line.strip() + '''
+  }
+  // Only CQ_ADMIN_EMAIL is treated as admin (no hardcoded extra admin emails).
+  const email = ADMIN_EMAIL
+  if (!email) return
+  const password_hash = await hashPassword(ADMIN_PASSWORD)
+  const now = new Date().toISOString()
+  try {
+    const existing = db.prepare('SELECT id, role FROM users WHERE email = ?').get(email)
+    if (existing) {
+      db.prepare(`UPDATE users SET password_hash = ?, role = 'admin', name = ? WHERE email = ?`).run(
+        password_hash,
+        'Course Admin',
+        email
+      )
+      grantAdminMembership(existing.id)
+      return
+    }
+    const id = uid('usr')
+    db.prepare(
+      `INSERT INTO users (id, email, name, password_hash, role, created_at) VALUES (?, ?, ?, ?, 'admin', ?)`
+    ).run(id, email, 'Course Admin', password_hash, now)
+    grantAdminMembership(id)
+  } catch (e) {
+    console.warn(`[cq-api] ensureAdmin failed for ${email}:`, e.message)
+  }
+}'''
+          t2 = t[:m.start()] + new + t[m.end():]
+          old_health = "  res.json({ ok: true, service: 'computer-quest-api', ts: new Date().toISOString(), adminEmail: ADMIN_EMAIL, adminPasswordConfigured: Boolean(ADMIN_PASSWORD) })"
+          new_health = """  res.json({
+    ok: true,
+    service: 'computer-quest-api',
+    ts: new Date().toISOString(),
+    adminPasswordConfigured: Boolean(ADMIN_PASSWORD),
+  })"""
+          assert old_health in t2, 'health line not found'
+          t2 = t2.replace(old_health, new_health)
+          assert 'admin@computerquest.app' not in t2 or t2.count('admin@computerquest.app') == 0
+          # default fallback in ADMIN_EMAIL const may still mention .local - that is OK as default only
+          assert 'adminEmail: ADMIN_EMAIL' not in t2
+          assert len(t2) > 20000
+          assert 'export default app' in t2
+          p.write_text(t2)
+          print('PATCHED', len(t), '->', len(t2))
+          PY
+      - name: Commit
+        run: |
+          git config user.name "cq-hygiene"
+          git config user.email "cq-hygiene@users.noreply.github.com"
+          git add server/index.js
+          if git diff --staged --quiet; then
+            echo "No change"
+          else
+            wc -c server/index.js
+            wc -l server/index.js
+            git commit -m "security(admin): ensureAdmin only CQ_ADMIN_EMAIL; hide adminEmail on /api/health"
+            git push
+          fi
