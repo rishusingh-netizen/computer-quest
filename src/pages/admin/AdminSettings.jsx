@@ -18,13 +18,13 @@ export default function AdminSettings() {
           <li>JWT sessions (Bearer token in localStorage; 14-day server expiry; cleared on Logout)</li>
           <li>Membership, orders, and certificates only change via server routes</li>
           <li>Admin routes require role=admin in the database</li>
-          <li>Payment success must be confirmed by the server (mock adapter until Stripe/Razorpay webhooks)</li>
+          <li>Payment success must be confirmed by the server (direct UPI + admin verification)</li>
           <li>Progress syncs to the database; XP jumps are soft-capped server-side</li>
           <li>Public certificate verification reads the database only</li>
         </ul>
         <p className="text-sm text-muted mt-3">
-          Set <code>CQ_JWT_SECRET</code>, <code>CQ_ADMIN_EMAIL</code>, and <code>CQ_ADMIN_PASSWORD</code> in
-          the server environment before public deployment. Never commit real secrets.
+          Admin credentials and signing secrets are configured only in the private server environment.
+          Never commit real secrets to source control or expose them in the frontend.
         </p>
       </div>
     </div>
