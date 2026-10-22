@@ -11,10 +11,9 @@ import {
 const JWT_SECRET = process.env.CQ_JWT_SECRET || 'cq-dev-jwt-secret-change-in-production'
 const JWT_DAYS = 14
 
+// Single configured admin email from CQ_ADMIN_EMAIL (no hardcoded alternate admin emails).
 const ADMIN_EMAIL = String(process.env.CQ_ADMIN_EMAIL || 'admin@computerquest.local').trim().toLowerCase()
-const ADMIN_EMAILS = new Set(
-  [ADMIN_EMAIL, 'admin@computerquest.local', 'admin@computerquest.app'].map((e) => e.toLowerCase())
-)
+const ADMIN_EMAILS = new Set([ADMIN_EMAIL].filter(Boolean))
 
 export function signToken(user, membershipRow = null) {
   const m = membershipRow || getMembership(user.id)
@@ -47,8 +46,6 @@ function upsertLocalMembership(userId, row) {
   if (!userId || !row) return
   const now = new Date().toISOString()
   const status = row.status || 'none'
-  // JSON DB adapter maps ON CONFLICT membership inserts as:
-  //   [user_id, start_at, expires_at, source, updated_at, plan_id] with status 'active'
   try {
     if (status === 'active') {
       db.prepare(
