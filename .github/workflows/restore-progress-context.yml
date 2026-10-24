@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
   push:
     paths:
-      - 'scripts/pc-restore/**'
+      - 'scripts/apply_streak_fix.py'
       - '.github/workflows/restore-progress-context.yml'
 jobs:
   restore:
@@ -14,23 +14,14 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Restore ProgressContext.jsx from base64 parts
+      - name: Apply surgical streak fix to ProgressContext
         run: |
-          python3 <<'PY'
-          import base64
-          from pathlib import Path
-          parts = sorted(Path('scripts/pc-restore').glob('part*.b64'))
-          assert parts, 'no parts'
-          b64 = ''.join(p.read_text().strip() for p in parts)
-          data = base64.b64decode(b64)
-          text = data.decode()
-          assert len(data) > 15000
-          assert 'streakReconciledRef' in text
-          assert 'PLACEHOLDER' not in text
-          assert 'toISOString' not in text
-          Path('src/context/ProgressContext.jsx').write_bytes(data)
-          print('RESTORED', len(data))
-          PY
+          python3 scripts/apply_streak_fix.py
+          test -f src/context/ProgressContext.jsx
+          wc -c src/context/ProgressContext.jsx
+          grep -n streakReconciledRef src/context/ProgressContext.jsx
+          ! grep -n toISOString src/context/ProgressContext.jsx
+          ! grep -n PLACEHOLDER src/context/ProgressContext.jsx
       - name: Commit
         run: |
           git config user.name cq-streak-fix
@@ -39,7 +30,6 @@ jobs:
           if git diff --staged --quiet; then
             echo No change
           else
-            wc -c src/context/ProgressContext.jsx
-            git commit -m "fix(streak): restore full ProgressContext with hydrate-safe local-day streak"
+            git commit -m "fix(streak): hydrate-safe local calendar-day streak in ProgressContext"
             git push
           fi
