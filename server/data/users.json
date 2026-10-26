@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-21T06:25:25.629Z",
+  "updated_at": "2026-10-26T17:45:21.084Z",
   "byUserId": {
     "usr_mv2nhoru_91e24939": {
       "id": "usr_mv2nhoru_91e24939",
@@ -189,6 +189,15 @@
       "role": "student",
       "created_at": "2026-10-21T06:25:25.521Z",
       "updated_at": "2026-10-21T06:25:25.629Z"
+    },
+    "usr_mvpjro6c_32191c5b": {
+      "id": "usr_mvpjro6c_32191c5b",
+      "email": "sabhinavkumar29@gmail.com",
+      "name": "Abhinav Kumar",
+      "password_hash": "$2a$10$nCqAfxA1KODPXoeOYJ/doulb780imFE/zjVFvj3XPjcKyl5RG40p6",
+      "role": "student",
+      "created_at": "2026-10-26T17:45:20.912Z",
+      "updated_at": "2026-10-26T17:45:21.084Z"
     }
   }
 }
