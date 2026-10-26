@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-26T13:25:40.448Z",
+  "updated_at": "2026-10-26T13:25:56.444Z",
   "byId": {
     "CQ-YNQWSUKT": {
       "id": "CQ-YNQWSUKT",
@@ -141,16 +141,16 @@
       "amount_paise": 19900,
       "amount_inr": 199,
       "duration_days": 182,
-      "status": "PENDING",
+      "status": "REJECTED",
       "utr": null,
       "paid_at": null,
       "submitted_at": null,
       "verified_at": null,
       "verified_by": null,
-      "reject_reason": null,
+      "reject_reason": "Payment could not be verified",
       "provider": "direct_upi",
       "created_at": "2026-10-22T04:12:16.169Z",
-      "updated_at": "2026-10-22T04:12:16.288Z"
+      "updated_at": "2026-10-26T13:25:56.444Z"
     },
     "CQ-5MMW9MMU": {
       "id": "CQ-5MMW9MMU",
