@@ -1,0 +1,18 @@
+User-agent: *
+Allow: /
+
+Disallow: /admin
+Disallow: /api/
+Disallow: /dashboard
+Disallow: /learn
+Disallow: /practice
+Disallow: /games
+Disallow: /tests
+Disallow: /revision
+Disallow: /ai-tutor
+Disallow: /progress
+Disallow: /completion
+Disallow: /profile
+Disallow: /checkout
+
+Sitemap: https://computer-quest.vercel.app/sitemap.xml
