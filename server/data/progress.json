@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-28T16:55:50.014Z",
+  "updated_at": "2026-10-28T16:55:51.743Z",
   "byUserId": {
     "usr_mv2lscc2_15b4c9b8": {
       "xp": 30,
@@ -1611,7 +1611,7 @@
       "xp": 0,
       "level": 1,
       "streak": 1,
-      "lastActiveDate": "2026-10-26",
+      "lastActiveDate": "2026-10-28",
       "completedLessons": [],
       "lessonScores": {},
       "practiceCompleted": [],
@@ -1627,7 +1627,7 @@
         "language": "en"
       },
       "user_id": "usr_mvjdcjd0_f29e3732",
-      "updated_at": "2026-10-28T16:55:50.014Z"
+      "updated_at": "2026-10-28T16:55:51.743Z"
     },
     "usr_mvpjro6c_32191c5b": {
       "xp": 0,
